@@ -28,6 +28,7 @@ import com.desconecta.hp.shared.model.formatMinutes
 
 enum class HpFormFactor { WATCH, PHONE }
 
+val LocalHpFormFactor = staticCompositionLocalOf { HpFormFactor.WATCH }
 val LocalHpColors = staticCompositionLocalOf { HpColorSchemes.WatchDark }
 val LocalHpTypography = staticCompositionLocalOf { HpTypeScale.Watch }
 val LocalHpShapes = staticCompositionLocalOf { HpShapes() }
@@ -69,6 +70,7 @@ fun HpTheme(
     SideEffect { haptics.enabled = hapticsEnabled }
 
     CompositionLocalProvider(
+        LocalHpFormFactor provides formFactor,
         LocalHpColors provides colors,
         LocalHpTypography provides typography,
         LocalHpShapes provides HpShapes(),
@@ -80,6 +82,8 @@ fun HpTheme(
 
 /** Acceso corto: `Hp.colors.hpCritical`, `Hp.type.hpNumber`, `Hp.motion.reduced`… */
 object Hp {
+    val formFactor: HpFormFactor
+        @Composable @ReadOnlyComposable get() = LocalHpFormFactor.current
     val colors: HpColors
         @Composable @ReadOnlyComposable get() = LocalHpColors.current
     val type: HpTypography

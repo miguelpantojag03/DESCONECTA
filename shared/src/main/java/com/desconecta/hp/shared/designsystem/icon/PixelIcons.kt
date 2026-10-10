@@ -1,11 +1,7 @@
 package com.desconecta.hp.shared.designsystem.icon
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.PathBuilder
-import androidx.compose.ui.graphics.vector.PathNode
-import androidx.compose.ui.unit.dp
 
 /**
  * Íconos pixel art de 16×16, definidos como "mapas de bits" de texto:
@@ -196,26 +192,12 @@ object PixelIcons {
     )
 
     // ---------------------------------------------------------------------------------
-    // Operaciones sobre los mapas
+    // Operaciones (delegan en PixelArt)
     // ---------------------------------------------------------------------------------
 
-    private fun List<String>.carve(points: List<Pair<Int, Int>>): List<String> {
-        val grid = map { it.toCharArray() }
-        points.forEach { (r, c) -> grid[r][c] = '.' }
-        return grid.map(::String)
-    }
+    private fun List<String>.carve(points: List<Pair<Int, Int>>) = PixelArt.carve(this, points)
 
-    /** Conserva solo los píxeles del borde de la silueta (vecino vacío en 4 direcciones). */
-    private fun List<String>.outline(): List<String> {
-        fun filled(r: Int, c: Int) = r in indices && c in this[r].indices && this[r][c] != '.'
-        return mapIndexed { r, row ->
-            row.mapIndexed { c, _ ->
-                val edge = filled(r, c) &&
-                    (!filled(r - 1, c) || !filled(r + 1, c) || !filled(r, c - 1) || !filled(r, c + 1))
-                if (edge) 'X' else '.'
-            }.joinToString("")
-        }
-    }
+    private fun List<String>.outline() = PixelArt.outline(this)
 
     /** Mitad izquierda llena, mitad derecha en contorno. */
     private fun heartHalf(): List<String> {
@@ -225,41 +207,11 @@ object PixelIcons {
         }
     }
 
-    private fun pixelIcon(name: String, rows: List<String>): ImageVector {
-        require(rows.size == 16 && rows.all { it.length == 16 }) { "$name debe ser 16×16" }
-        return ImageVector.Builder(
-            name = "Pixel.$name",
-            defaultWidth = 16.dp,
-            defaultHeight = 16.dp,
-            viewportWidth = 16f,
-            viewportHeight = 16f,
-        ).apply {
-            // Un único path por tinta: los rectángulos contiguos se rasterizan juntos y
-            // no aparecen "costuras" de antialiasing entre filas al escalar.
-            addPath(pathData = runsOf(rows, 'X'), fill = SolidColor(Color.Black))
-            addPath(pathData = runsOf(rows, 'o'), fill = SolidColor(Color.Black), fillAlpha = 0.45f)
-        }.build()
-    }
+    private val INKS = mapOf(
+        'X' to PixelArt.Ink(Color.Black),
+        'o' to PixelArt.Ink(Color.Black, alpha = 0.45f),
+    )
 
-    /** Une píxeles consecutivos de una fila en un solo rectángulo. */
-    private fun runsOf(rows: List<String>, ink: Char): List<PathNode> {
-        val builder = PathBuilder()
-        rows.forEachIndexed { y, row ->
-            var x = 0
-            while (x < row.length) {
-                if (row[x] == ink) {
-                    val start = x
-                    while (x < row.length && row[x] == ink) x++
-                    builder.moveTo(start.toFloat(), y.toFloat())
-                    builder.horizontalLineTo(x.toFloat())
-                    builder.verticalLineTo(y + 1f)
-                    builder.horizontalLineTo(start.toFloat())
-                    builder.close()
-                } else {
-                    x++
-                }
-            }
-        }
-        return builder.nodes
-    }
+    private fun pixelIcon(name: String, rows: List<String>): ImageVector =
+        PixelArt.build("Pixel.$name", rows, INKS)
 }
