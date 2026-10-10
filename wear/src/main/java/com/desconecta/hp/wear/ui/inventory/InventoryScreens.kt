@@ -48,7 +48,7 @@ import com.desconecta.hp.shared.model.GameState
 import com.desconecta.hp.shared.model.Inventory
 import com.desconecta.hp.shared.model.ItemType
 import com.desconecta.hp.wear.ui.ActionState
-import com.desconecta.hp.wear.ui.common.formatDuration
+import com.desconecta.hp.shared.model.formatDuration
 
 // =====================================================================================
 // Inventario
@@ -159,7 +159,8 @@ fun ConfirmItemScreen(
     val preview = when (type) {
         ItemType.POTION -> {
             val after = (game.currentHp + Inventory.POTION_HP).coerceAtMost(game.maxHp)
-            "${game.currentHp} → $after HP"
+            if (targetName != null) "Despierta $targetName 10 min · ${game.currentHp} → $after HP"
+            else "${game.currentHp} → $after HP"
         }
         ItemType.SHIELD -> "${targetName ?: "La app"} no hará daño durante 15 min"
         ItemType.REVIVE -> "Vuelves con ${Inventory.REVIVE_HP} HP"

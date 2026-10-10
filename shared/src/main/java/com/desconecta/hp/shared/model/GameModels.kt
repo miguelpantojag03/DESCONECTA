@@ -21,12 +21,15 @@ data class Monster(
     val shieldUntil: Long? = null,
     /** Minutos usados los 6 días anteriores (el más reciente al final), para la gráfica semanal. */
     val history: List<Int> = emptyList(),
+    /** Minutos extra solo por hoy (poción usada desde la pantalla de bloqueo). */
+    val bonusMinutes: Int = 0,
 ) {
     /** Últimos 7 días incluyendo hoy. */
     val week: List<Int> get() = history.takeLast(6) + usedMinutes
-    val remainingMinutes: Int get() = (limitMinutes - usedMinutes).coerceAtLeast(0)
-    val isDefeated: Boolean get() = usedMinutes >= limitMinutes
-    val health: Health get() = Health(remainingMinutes, limitMinutes.coerceAtLeast(1))
+    val effectiveLimit: Int get() = limitMinutes + bonusMinutes
+    val remainingMinutes: Int get() = (effectiveLimit - usedMinutes).coerceAtLeast(0)
+    val isDefeated: Boolean get() = usedMinutes >= effectiveLimit
+    val health: Health get() = Health(remainingMinutes, effectiveLimit.coerceAtLeast(1))
     fun isShielded(now: Long): Boolean = shieldUntil != null && now < shieldUntil
 }
 
@@ -154,6 +157,8 @@ data class GameState(
     val revivedToday: Boolean = false,
     val activeAttacker: String? = null,    // packageName del monstruo que ataca ahora
     val settings: UiSettings = UiSettings(),
+    /** Modo estudio: hasta este instante todos los monstruos están bloqueados. */
+    val studyModeUntil: Long = 0L,
     /** El usuario está en pausa (sin usar el teléfono) y acumulando regeneración. */
     val regenerating: Boolean = false,
     val updatedAt: Long = 0L,
@@ -163,6 +168,7 @@ data class GameState(
     val attacker: Monster? get() = monsters.firstOrNull { it.packageName == activeAttacker }
     fun monster(pkg: String) = monsters.firstOrNull { it.packageName == pkg }
     fun isAlly(pkg: String) = allies.any { it.packageName == pkg }
+    fun studyModeActive(now: Long) = now < studyModeUntil
 }
 
 /** Resumen de un día terminado (historial / mapa de calor). */

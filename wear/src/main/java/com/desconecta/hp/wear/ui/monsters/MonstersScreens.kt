@@ -53,8 +53,8 @@ import com.desconecta.hp.shared.domain.GameEngine
 import com.desconecta.hp.shared.model.GameState
 import com.desconecta.hp.shared.model.Monster
 import com.desconecta.hp.shared.model.formatMinutes
-import com.desconecta.hp.wear.ui.common.formatDuration
-import com.desconecta.hp.wear.ui.common.millisUntilRespawn
+import com.desconecta.hp.shared.model.formatDuration
+import com.desconecta.hp.shared.model.millisUntilRespawn
 
 /**
  * Lista de monstruos. Orden: el que ataca ahora → los que tienen menos margen → los

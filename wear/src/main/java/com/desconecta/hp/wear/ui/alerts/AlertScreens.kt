@@ -45,8 +45,8 @@ import com.desconecta.hp.shared.designsystem.spacing.HpSpacing
 import com.desconecta.hp.shared.designsystem.theme.Hp
 import com.desconecta.hp.shared.model.HealthStatus
 import com.desconecta.hp.shared.model.HpWarning
-import com.desconecta.hp.wear.ui.common.formatDuration
-import com.desconecta.hp.wear.ui.common.millisUntilRespawn
+import com.desconecta.hp.shared.model.formatDuration
+import com.desconecta.hp.shared.model.millisUntilRespawn
 
 /** Despacha la alerta que toca mostrar. */
 @Composable

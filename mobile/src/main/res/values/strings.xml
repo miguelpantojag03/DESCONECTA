@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="blocker_description">HP detecta qué app se abre para mostrar la pantalla de descanso cuando un monstruo está derrotado o llegas a Game Over. No lee lo que escribes ni el contenido de las apps.</string>
+</resources>

@@ -39,6 +39,10 @@ sealed interface WireEvent {
     @Serializable @SerialName("achievement")
     data class Achievement(val id: AchievementId) : WireEvent
 
+    /** El teléfono pide al reloj abrir la confirmación de poción (botón de la pantalla de bloqueo). */
+    @Serializable @SerialName("open_potion")
+    data class OpenPotion(val wakeMonster: String? = null) : WireEvent
+
     @Serializable @SerialName("respawn")
     data class Respawn(val xpEarned: Int, val streak: Int) : WireEvent
 }
@@ -49,7 +53,7 @@ sealed interface WireCommand {
     val requestId: String
 
     @Serializable @SerialName("potion")
-    data class UsePotion(override val requestId: String) : WireCommand
+    data class UsePotion(override val requestId: String, val wakeMonster: String? = null) : WireCommand
 
     @Serializable @SerialName("shield")
     data class UseShield(override val requestId: String, val packageName: String) : WireCommand

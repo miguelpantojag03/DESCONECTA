@@ -76,7 +76,7 @@ class WatchListenerService : WearableListenerService() {
                 WireEvent.GameOver -> HpHapticEvent.GAME_OVER
                 is WireEvent.LevelUp, is WireEvent.Achievement -> HpHapticEvent.CELEBRATION
                 is WireEvent.Healed -> HpHapticEvent.HEAL
-                is WireEvent.Respawn -> HpHapticEvent.CONFIRM
+                is WireEvent.Respawn, is WireEvent.OpenPotion -> HpHapticEvent.CONFIRM
             },
         )
         repository.onEvent(event)

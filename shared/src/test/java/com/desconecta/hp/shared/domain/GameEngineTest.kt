@@ -78,6 +78,19 @@ class GameEngineTest {
         assertEquals(Rejection.NO_ITEMS, engine.usePotion(base.copy(hp = 50, inventory = Inventory(potions = 0))).rejection)
     }
 
+    @Test fun potionFromBlockScreenWakesMonsterTenMinutes() {
+        val blocked = base.copy(hp = 80, monsters = listOf(tiktok.copy(usedMinutes = 30)))
+        assertTrue(blocked.monster(tiktok.packageName)!!.isDefeated)
+        val out = engine.usePotion(blocked, wakeMonster = tiktok.packageName)
+        val awake = out.state.monster(tiktok.packageName)!!
+        assertFalse(awake.isDefeated)
+        assertEquals(10, awake.remainingMinutes)
+        assertEquals(90, out.state.currentHp)
+        // Al día siguiente el bono desaparece y el límite vuelve a ser el original.
+        val tomorrow = engine.respawn(out.state, "2026-10-11", 7).state.monster(tiktok.packageName)!!
+        assertEquals(30, tomorrow.effectiveLimit)
+    }
+
     @Test fun shieldBlocksDamageFor15Minutes() {
         val shielded = engine.useShield(base, tiktok.packageName).state
         assertEquals(120, engine.onUsage(shielded, tiktok.packageName, 5).state.currentHp)
@@ -132,6 +145,14 @@ class GameEngineTest {
         val out = engine.setMonsterLimit(base, tiktok.packageName, 43)
         assertEquals(40, out.state.monster(tiktok.packageName)!!.limitMinutes)
         assertNull(out.rejection)
+    }
+
+    @Test fun wireCodecRoundTripsFullState() {
+        val state = com.desconecta.hp.shared.model.SampleData.gameState()
+        val bytes = com.desconecta.hp.shared.datalayer.WireCodec.encodeState(state)
+        assertEquals(state, com.desconecta.hp.shared.datalayer.WireCodec.decodeState(bytes))
+        val cmd = com.desconecta.hp.shared.datalayer.WireCommand.UseShield("r1", "com.x")
+        assertEquals(cmd, com.desconecta.hp.shared.datalayer.WireCodec.decodeCommand(com.desconecta.hp.shared.datalayer.WireCodec.encodeCommand(cmd)))
     }
 
     @Test fun statusThresholdsMatchSpec() {

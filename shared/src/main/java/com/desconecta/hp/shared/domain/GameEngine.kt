@@ -114,16 +114,24 @@ class GameEngine(private val clock: () -> Long = System::currentTimeMillis) {
     // Objetos (solo se usan desde el reloj)
     // ---------------------------------------------------------------------------------
 
-    fun usePotion(state: GameState): Outcome {
+    /**
+     * @param wakeMonster si se usa desde la pantalla de bloqueo de una app, además de curar
+     *   "despierta" a ese monstruo [Inventory.POTION_HP] minutos solo por hoy.
+     */
+    fun usePotion(state: GameState, wakeMonster: String? = null): Outcome {
         if (state.phase == GamePhase.GAME_OVER) return Outcome(state, rejection = Rejection.GAME_OVER)
         if (state.inventory.potions <= 0) return Outcome(state, rejection = Rejection.NO_ITEMS)
-        if (state.currentHp >= state.maxHp) return Outcome(state, rejection = Rejection.FULL_HEALTH)
+        val target = wakeMonster?.let { state.monster(it) }?.takeIf { it.isDefeated }
+        if (state.currentHp >= state.maxHp && target == null) return Outcome(state, rejection = Rejection.FULL_HEALTH)
 
         val amount = minOf(Inventory.POTION_HP, state.maxHp - state.currentHp)
         var next = state.copy(
             hp = state.currentHp + amount,
             inventory = state.inventory.copy(potions = state.inventory.potions - 1),
             potionsUsedToday = state.potionsUsedToday + 1,
+            monsters = if (target == null) state.monsters else state.monsters.map {
+                if (it.packageName == target.packageName) it.copy(bonusMinutes = it.usedMinutes - it.limitMinutes + Inventory.POTION_HP) else it
+            },
             updatedAt = clock(),
         )
         val events = mutableListOf<GameEvent>(GameEvent.Healed(amount, HealSource.POTION))
@@ -252,11 +260,12 @@ class GameEngine(private val clock: () -> Long = System::currentTimeMillis) {
             usedMinutesToday = 0,
             regenToday = 0,
             phase = GamePhase.PLAYING,
-            monsters = next.monsters.map { it.copy(usedMinutes = 0, shieldUntil = null, history = (it.history + it.usedMinutes).takeLast(6)) },
+            monsters = next.monsters.map { it.copy(usedMinutes = 0, shieldUntil = null, bonusMinutes = 0, history = (it.history + it.usedMinutes).takeLast(6)) },
             boss = boss,
             potionsUsedToday = 0,
             revivedToday = false,
             activeAttacker = null,
+            studyModeUntil = 0L,
             updatedAt = clock(),
         )
         events.add(0, GameEvent.Respawn(summary))

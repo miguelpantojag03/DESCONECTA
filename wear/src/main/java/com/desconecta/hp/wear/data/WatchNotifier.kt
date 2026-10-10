@@ -42,6 +42,7 @@ class WatchNotifier @Inject constructor(@param:ApplicationContext private val co
             WireEvent.GameOver -> Triple("GAME OVER", "Hoy ya jugaste suficiente. Respawn a medianoche.", SharedR.drawable.ic_hp_skull)
             is WireEvent.LevelUp -> Triple("¡LEVEL UP!", "Nivel ${event.level}: ${event.title}", SharedR.drawable.ic_hp_star)
             is WireEvent.Achievement -> Triple("Logro desbloqueado", event.id.title, SharedR.drawable.ic_hp_medal)
+            is WireEvent.OpenPotion -> Triple("¿Usar una poción?", "Toca para confirmar en el reloj.", SharedR.drawable.ic_hp_potion)
             else -> return
         }
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
@@ -49,7 +50,13 @@ class WatchNotifier @Inject constructor(@param:ApplicationContext private val co
         ensureChannel()
         val open = PendingIntent.getActivity(
             context, 0,
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            Intent(context, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                .apply {
+                    if (event is WireEvent.OpenPotion) {
+                        putExtra(MainActivity.EXTRA_OPEN, MainActivity.OPEN_POTION + (event.wakeMonster?.let { ":$it" } ?: ""))
+                    }
+                },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val notification = NotificationCompat.Builder(context, CHANNEL)

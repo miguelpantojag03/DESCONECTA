@@ -21,7 +21,7 @@ import com.desconecta.hp.wear.data.Connection
 import com.desconecta.hp.wear.ui.alerts.AlertOverlay
 import com.desconecta.hp.wear.ui.common.WatchLoading
 import com.desconecta.hp.wear.ui.common.WatchNoGame
-import com.desconecta.hp.wear.ui.common.formatAgo
+import com.desconecta.hp.shared.model.formatAgo
 import com.desconecta.hp.wear.ui.gameover.GameOverScreen
 import com.desconecta.hp.wear.ui.hud.HudScreen
 import com.desconecta.hp.wear.ui.inventory.ConfirmItemScreen
@@ -94,13 +94,21 @@ private fun GameNavigation(
 ) {
     val nav = rememberSwipeDismissableNavController()
     LaunchedEffect(openRequest) {
-        if (openRequest == com.desconecta.hp.wear.MainActivity.OPEN_POTION && game.phase == GamePhase.PLAYING) {
-            viewModel.resetAction()
-            nav.navigate(Routes.confirm(ItemType.POTION))
+        if (openRequest?.startsWith(com.desconecta.hp.wear.MainActivity.OPEN_POTION) == true) {
+            viewModel.requestPotion(openRequest.substringAfter(":", "").ifEmpty { null })
         }
         if (openRequest != null) onOpenHandled()
     }
     val action by viewModel.action.collectAsStateWithLifecycle()
+    val potionRequest by viewModel.potionRequest.collectAsStateWithLifecycle()
+    LaunchedEffect(potionRequest) {
+        val req = potionRequest ?: return@LaunchedEffect
+        if (game.phase == GamePhase.PLAYING) {
+            viewModel.resetAction()
+            nav.navigate(Routes.confirm(ItemType.POTION, req.wakeMonster))
+        }
+        viewModel.consumePotionRequest()
+    }
     val done: () -> Unit = {
         viewModel.resetAction()
         nav.popBackStack(Routes.HOME, inclusive = false)
@@ -152,7 +160,7 @@ private fun GameNavigation(
                 action = action,
                 onConfirm = {
                     when (type) {
-                        ItemType.POTION -> viewModel.usePotion()
+                        ItemType.POTION -> viewModel.usePotion(pkg)
                         ItemType.SHIELD -> pkg?.let(viewModel::useShield)
                         ItemType.REVIVE -> nav.navigate(Routes.PIN)
                     }

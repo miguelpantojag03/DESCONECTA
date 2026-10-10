@@ -52,12 +52,30 @@ class WatchViewModel @Inject constructor(
     private val _action = MutableStateFlow<ActionState>(ActionState.Idle)
     val action: StateFlow<ActionState> = _action.asStateFlow()
 
+    /** Pedido del teléfono de abrir la confirmación de poción (con app a despertar o null). */
+    data class PotionRequest(val wakeMonster: String?)
+
+    private val _potionRequest = MutableStateFlow<PotionRequest?>(null)
+    val potionRequest: StateFlow<PotionRequest?> = _potionRequest.asStateFlow()
+
+    fun requestPotion(wakeMonster: String?) {
+        _potionRequest.value = PotionRequest(wakeMonster)
+    }
+
+    fun consumePotionRequest() {
+        _potionRequest.value = null
+    }
+
     private var limitJob: Job? = null
 
     init {
         viewModelScope.launch { repository.refresh() }
         viewModelScope.launch {
             repository.events.collect { event ->
+                if (event is WireEvent.OpenPotion) {
+                    _potionRequest.value = PotionRequest(event.wakeMonster)
+                    return@collect
+                }
                 // El Game Over ya tiene su propia pantalla (depende del estado, no del evento).
                 if (event is WireEvent.GameOver || event is WireEvent.Healed) return@collect
                 queue.addLast(event)
@@ -72,7 +90,10 @@ class WatchViewModel @Inject constructor(
 
     fun retryConnection() = viewModelScope.launch { repository.refresh() }
 
-    fun usePotion() = run(WireCommand.UsePotion(WatchGameRepository.newRequestId()), "¡Poción usada! +10 HP")
+    fun usePotion(wakeMonster: String? = null) = run(
+        WireCommand.UsePotion(WatchGameRepository.newRequestId(), wakeMonster),
+        if (wakeMonster == null) "¡Poción usada! +10 HP" else "¡Poción usada! App despierta 10 min",
+    )
 
     fun useShield(packageName: String) =
         run(WireCommand.UseShield(WatchGameRepository.newRequestId(), packageName), "Escudo activo 15 min")
