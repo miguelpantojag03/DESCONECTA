@@ -311,7 +311,7 @@ fun MonsterCard(
             BasicText(
                 monster.name,
                 style = Hp.type.title.copy(color = colors.textPrimary),
-                maxLines = 1,
+                maxLines = if (watch) 2 else 1,
                 overflow = TextOverflow.Ellipsis,
             )
             if (!watch) {

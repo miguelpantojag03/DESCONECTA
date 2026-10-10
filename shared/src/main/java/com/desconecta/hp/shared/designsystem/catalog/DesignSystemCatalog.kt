@@ -67,7 +67,7 @@ fun DesignSystemCatalog(modifier: Modifier = Modifier) {
             val t = Hp.type
             Column(verticalArrangement = Arrangement.spacedBy(HpSpacing.md)) {
                 Specimen("84", t.hpNumber, c.hpHealthy, "hpNumber · Press Start 2P")
-                Specimen("/ 120 HP", t.hpMax, c.textSecondary, "hpMax · Silkscreen")
+                Specimen("de 120 HP", t.hpMax, c.textSecondary, "hpMax · Silkscreen")
                 Specimen("GAME OVER", t.gameTitle, c.textPrimary, "gameTitle · Press Start 2P")
                 Specimen("NV 12  x3", t.gameLabel, c.xp, "gameLabel · Silkscreen")
                 Specimen("Scrollzilla ataca", t.headline, c.textPrimary, "headline · Inter SemiBold")

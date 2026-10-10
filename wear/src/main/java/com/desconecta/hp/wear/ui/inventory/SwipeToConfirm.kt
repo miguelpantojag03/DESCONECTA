@@ -92,7 +92,7 @@ fun SwipeToConfirm(
         BasicText(
             "$label  ›››",
             style = Hp.type.label.copy(color = c.textPrimary.copy(alpha = 1f - progress)),
-            modifier = Modifier.align(Alignment.Center).padding(start = thumb),
+            modifier = Modifier.align(Alignment.Center).padding(start = thumb + 12.dp),
         )
         Box(
             Modifier

@@ -51,6 +51,8 @@ import com.desconecta.hp.wear.ui.common.millisUntilRespawn
 /** Despacha la alerta que toca mostrar. */
 @Composable
 fun AlertOverlay(event: WireEvent, now: Long, onDismiss: () -> Unit) {
+    // Pantalla completa: sin hora del sistema encima del mensaje.
+    androidx.wear.compose.material3.ScreenScaffold(timeText = {}) {
     when (event) {
         is WireEvent.Warning -> WarningAlert(event, onDismiss)
         is WireEvent.MonsterDefeated -> MonsterDefeatedAlert(event, now, onDismiss)
@@ -58,6 +60,7 @@ fun AlertOverlay(event: WireEvent, now: Long, onDismiss: () -> Unit) {
         is WireEvent.Achievement -> CelebrationAlert("¡LOGRO!", event.id.title, event.id.description, PixelIcons.Medal, Hp.colors.gold, onDismiss)
         is WireEvent.Respawn -> CelebrationAlert("RESPAWN", "+${event.xpEarned} XP", "Racha: ${event.streak} días. ¡Nuevo día, vida llena!", PixelIcons.Heart, Hp.colors.hpHealthy, onDismiss)
         else -> LaunchedEffect(event) { onDismiss() }
+    }
     }
 }
 

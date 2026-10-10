@@ -297,7 +297,7 @@ fun HealthReadout(
             Spacer(Modifier.height(HpSpacing.xs))
             BasicText("$number", style = type.hpNumber.copy(color = numberColor, textAlign = TextAlign.Center))
             Spacer(Modifier.height(HpSpacing.xs))
-            BasicText("/ ${health.max} $unit", style = type.hpMax.copy(color = colors.textSecondary))
+            BasicText("de ${health.max} $unit", style = type.hpMax.copy(color = colors.textSecondary))
             BasicText(formatMinutes(health.clamped), style = type.caption.copy(color = colors.textPrimary))
         }
     } else {
@@ -305,7 +305,7 @@ fun HealthReadout(
             BasicText("$number", style = type.hpNumber.copy(color = numberColor))
             Spacer(Modifier.width(HpSpacing.sm))
             Column(Modifier.padding(bottom = 2.dp)) {
-                BasicText("/ ${health.max} $unit", style = type.hpMax.copy(color = colors.textSecondary))
+                BasicText("de ${health.max} $unit", style = type.hpMax.copy(color = colors.textSecondary))
                 BasicText(formatMinutes(health.clamped), style = type.caption.copy(color = colors.textPrimary))
             }
             Spacer(Modifier.weight(1f))
