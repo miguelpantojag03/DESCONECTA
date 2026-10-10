@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Estados de vida: el color NUNCA va solo, siempre con este texto + ícono -->
+    <string name="hp_status_healthy">Saludable</string>
+    <string name="hp_status_hurt">Herido</string>
+    <string name="hp_status_critical">Crítico</string>
+    <string name="hp_status_game_over">Game Over</string>
+
+    <!-- TalkBack -->
+    <string name="hp_cd_health">Vida: %1$d de %2$d, estado %3$s</string>
+    <string name="hp_cd_health_time">Te quedan %1$s de uso</string>
+    <string name="hp_cd_attacker">%1$s te está haciendo daño</string>
+
+    <string name="hp_unit">HP</string>
+</resources>

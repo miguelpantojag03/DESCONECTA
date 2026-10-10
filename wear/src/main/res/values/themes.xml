@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HP</string>
+
+    <!-- Fondo negro desde el primer frame: evita el destello gris al abrir la app. -->
+    <style name="Theme.HpWear" parent="@android:style/Theme.DeviceDefault">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>

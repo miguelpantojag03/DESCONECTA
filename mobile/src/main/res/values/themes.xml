@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HP: Health Points</string>
+
+    <!-- Mismo color que HpColorSchemes.PhoneDark.background para que no haya destello blanco. -->
+    <color name="hp_phone_background">#FF0B0B10</color>
+
+    <style name="Theme.HpMobile" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/hp_phone_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
