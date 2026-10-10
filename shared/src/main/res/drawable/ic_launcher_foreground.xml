@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Corazón pixel de PixelIcons, en verde "vida", centrado en la zona segura del ícono adaptable. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="36"
+    android:viewportHeight="36">
+    <group android:translateX="10" android:translateY="10">
+        <path
+            android:fillColor="#FF3DDC84"
+            pathData="M2,2h4v1h-4zM10,2h4v1h-4zM1,3h6v1h-6zM9,3h6v1h-6zM0,4h16v1h-16zM0,5h16v1h-16zM0,6h16v1h-16zM0,7h16v1h-16zM1,8h14v1h-14zM2,9h12v1h-12zM3,10h10v1h-10zM4,11h8v1h-8zM5,12h6v1h-6zM6,13h4v1h-4zM7,14h2v1h-2z" />
+    </group>
+</vector>
