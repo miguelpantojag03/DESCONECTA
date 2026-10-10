@@ -69,7 +69,7 @@ fun WearApp(
         val lastSync = formatAgo(now, snapshot.lastSyncAt)
         when {
             game == null && snapshot.loading -> WatchLoading()
-            game == null -> WatchNoGame(connected, onRetry = { viewModel.retryConnection() })
+            game == null -> WatchNoGame(connected, onRetry = { viewModel.retryConnection() }, onDemo = { viewModel.startDemo() })
             // Ambient: solo el HUD simplificado, sin navegación ni alertas.
             ambient -> HudScreen(game, connected, lastSync, ambient = true)
             else -> AppScaffold {

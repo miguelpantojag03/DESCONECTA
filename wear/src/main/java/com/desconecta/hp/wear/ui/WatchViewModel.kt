@@ -90,6 +90,8 @@ class WatchViewModel @Inject constructor(
 
     fun retryConnection() = viewModelScope.launch { repository.refresh() }
 
+    fun startDemo() = repository.startDemo()
+
     fun usePotion(wakeMonster: String? = null) = run(
         WireCommand.UsePotion(WatchGameRepository.newRequestId(), wakeMonster),
         if (wakeMonster == null) "¡Poción usada! +10 HP" else "¡Poción usada! App despierta 10 min",

@@ -213,16 +213,26 @@ private fun PixelConfetti(colors: List<Color>) {
 
 // -------------------------------------------------------------------------------------
 
+/**
+ * Marco de las alertas: lista desplazable para que la acción siempre sea alcanzable,
+ * incluso en relojes pequeños o con texto grande.
+ */
 @Composable
 private fun AlertFrame(container: Color, content: @Composable () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(container)
-            .padding(horizontal = HpSpacing.xl, vertical = HpSpacing.lg),
+    val listState = androidx.wear.compose.foundation.lazy.rememberScalingLazyListState()
+    androidx.wear.compose.foundation.lazy.ScalingLazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize().background(container),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(HpSpacing.xs, Alignment.CenterVertically),
-    ) { content() }
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = HpSpacing.lg, vertical = HpSpacing.xxl),
+    ) {
+        item {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(HpSpacing.xs),
+            ) { content() }
+        }
+    }
 }
 
 @Composable

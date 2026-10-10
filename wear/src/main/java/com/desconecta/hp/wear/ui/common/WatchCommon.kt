@@ -51,16 +51,33 @@ fun WatchLoading() = WatchSurface {
     }
 }
 
-/** Primer uso: el reloj aún no recibió ninguna partida del teléfono. */
+/**
+ * Primer uso: el reloj aún no recibió ninguna partida del teléfono. Lista desplazable
+ * para que ambas acciones quepan en cualquier reloj redondo.
+ */
 @Composable
-fun WatchNoGame(connected: Boolean, onRetry: () -> Unit) = WatchSurface {
-    HpStateMessage(
-        kind = if (connected) ScreenStateKind.EMPTY else ScreenStateKind.OFFLINE,
-        title = if (connected) "Aún no hay partida" else "Sin teléfono",
-        body = if (connected) "Abre HP en tu teléfono para crear tu personaje."
-        else "Conecta tu teléfono para empezar.",
-        action = { Button(onClick = onRetry) { Text("Reintentar") } },
-    )
+fun WatchNoGame(connected: Boolean, onRetry: () -> Unit, onDemo: () -> Unit = {}) {
+    val listState = androidx.wear.compose.foundation.lazy.rememberScalingLazyListState()
+    androidx.wear.compose.material3.ScreenScaffold(scrollState = listState) { padding ->
+        androidx.wear.compose.foundation.lazy.ScalingLazyColumn(
+            state = listState,
+            contentPadding = padding,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxSize().background(Hp.colors.background),
+        ) {
+            item {
+                HpStateMessage(
+                    kind = if (connected) ScreenStateKind.EMPTY else ScreenStateKind.OFFLINE,
+                    title = if (connected) "Aún no hay partida" else "Sin teléfono",
+                    body = if (connected) "Abre HP en tu teléfono para crear tu personaje."
+                    else "Conecta tu teléfono para empezar.",
+                )
+            }
+            item { Button(onClick = onRetry) { Text("Reintentar") } }
+            // Para presentar la app sin emparejar: partida de ejemplo en el propio reloj.
+            item { androidx.wear.compose.material3.OutlinedButton(onClick = onDemo) { Text("Probar demo") } }
+        }
+    }
 }
 
 /**

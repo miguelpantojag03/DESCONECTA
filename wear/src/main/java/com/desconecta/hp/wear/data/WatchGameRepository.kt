@@ -7,7 +7,17 @@ import com.desconecta.hp.shared.datalayer.DataLayerPaths
 import com.desconecta.hp.shared.datalayer.WireCodec
 import com.desconecta.hp.shared.datalayer.WireCommand
 import com.desconecta.hp.shared.datalayer.WireEvent
+import com.desconecta.hp.shared.datalayer.toWire
+import com.desconecta.hp.shared.domain.GameEngine
+import com.desconecta.hp.shared.domain.Outcome
 import com.desconecta.hp.shared.model.GameState
+import com.desconecta.hp.shared.model.SampleData
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.PutDataRequest
@@ -37,6 +47,8 @@ data class WatchSnapshot(
     val loading: Boolean = true,
     /** Epoch ms de la última sincronización recibida. */
     val lastSyncAt: Long = 0L,
+    /** Modo demostración: datos de ejemplo y reglas aplicadas en el propio reloj. */
+    val demo: Boolean = false,
 )
 
 /** Resultado de un comando enviado al teléfono, ya interpretado para la interfaz. */
@@ -72,9 +84,11 @@ class WatchGameRepository @Inject constructor(
 
     /** Carga el último estado guardado y comprueba la conexión. Se llama al abrir la app. */
     suspend fun refresh() {
+        if (_snapshot.value.demo) return
         runCatching {
             val uri = Uri.Builder().scheme(PutDataRequest.WEAR_URI_SCHEME).path(DataLayerPaths.GAME_STATE).build()
-            val items = dataClient.getDataItems(uri).await()
+            // Sin teléfono emparejado los servicios de Google pueden tardar mucho: máximo 3 s.
+            val items = withTimeoutOrNull(LOAD_TIMEOUT_MS) { dataClient.getDataItems(uri).await() } ?: return@runCatching
             try {
                 items.firstOrNull()?.let { item ->
                     val map = DataMapItem.fromDataItem(item).dataMap
@@ -93,9 +107,11 @@ class WatchGameRepository @Inject constructor(
 
     suspend fun checkConnection() {
         val connected = runCatching {
-            capabilityClient
-                .getCapability(DataLayerPaths.CAPABILITY_PHONE, CapabilityClient.FILTER_REACHABLE)
-                .await().nodes.isNotEmpty()
+            withTimeoutOrNull(LOAD_TIMEOUT_MS) {
+                capabilityClient
+                    .getCapability(DataLayerPaths.CAPABILITY_PHONE, CapabilityClient.FILTER_REACHABLE)
+                    .await().nodes.isNotEmpty()
+            } ?: false
         }.getOrDefault(false)
         setConnected(connected)
     }
@@ -103,6 +119,7 @@ class WatchGameRepository @Inject constructor(
     // --- Entradas desde WatchListenerService -------------------------------------------
 
     fun applyState(bytes: ByteArray, syncedAt: Long) {
+        if (_snapshot.value.demo) return
         val state = runCatching { WireCodec.decodeState(bytes) }.getOrNull() ?: return
         _snapshot.update { it.copy(game = state, loading = false, lastSyncAt = syncedAt) }
     }
@@ -116,12 +133,14 @@ class WatchGameRepository @Inject constructor(
     }
 
     fun setConnected(connected: Boolean) {
+        if (_snapshot.value.demo) return
         _snapshot.update { it.copy(connection = if (connected) Connection.CONNECTED else Connection.DISCONNECTED) }
     }
 
     // --- Comandos -----------------------------------------------------------------------
 
     suspend fun send(command: WireCommand, awaitResult: Boolean = true): CommandOutcome {
+        if (_snapshot.value.demo) return demoCommand(command)
         val node = runCatching {
             capabilityClient
                 .getCapability(DataLayerPaths.CAPABILITY_PHONE, CapabilityClient.FILTER_REACHABLE)
@@ -151,7 +170,68 @@ class WatchGameRepository @Inject constructor(
         }
     }
 
+    // --- Modo demostración ----------------------------------------------------------------
+
+    private val demoScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val demoEngine = GameEngine()
+    private var demoJob: Job? = null
+
+    /**
+     * Arranca una partida de ejemplo sin teléfono: un monstruo ataca 1 HP cada
+     * [DEMO_TICK_MS] y los objetos se aplican con el mismo GameEngine que usa el teléfono.
+     * Sirve para presentar la app sin emparejar dispositivos.
+     */
+    fun startDemo() {
+        val now = System.currentTimeMillis()
+        _snapshot.value = WatchSnapshot(
+            game = SampleData.gameState(hp = 63).copy(
+                monsters = SampleData.monsters.map { it.copy(shieldUntil = if (it.shieldUntil != null) now + 9 * 60_000L else null) },
+                updatedAt = now,
+            ),
+            connection = Connection.CONNECTED,
+            loading = false,
+            lastSyncAt = now,
+            demo = true,
+        )
+        demoJob?.cancel()
+        demoJob = demoScope.launch {
+            while (true) {
+                delay(DEMO_TICK_MS)
+                applyDemo { s ->
+                    val target = s.activeAttacker ?: s.monsters.firstOrNull { !it.isDefeated && !it.isShielded(System.currentTimeMillis()) }?.packageName
+                    if (target == null) Outcome(s) else demoEngine.onUsage(s, target, 1)
+                }
+            }
+        }
+    }
+
+    private fun applyDemo(op: (GameState) -> Outcome): Outcome? {
+        val current = _snapshot.value.game ?: return null
+        val out = op(current)
+        _snapshot.update { it.copy(game = out.state, lastSyncAt = System.currentTimeMillis()) }
+        out.events.forEach { e -> e.toWire(out.state)?.let { _events.tryEmit(it) } }
+        return out
+    }
+
+    private fun demoCommand(command: WireCommand): CommandOutcome {
+        val out = when (command) {
+            is WireCommand.UsePotion -> applyDemo { demoEngine.usePotion(it, command.wakeMonster) }
+            is WireCommand.UseShield -> applyDemo { demoEngine.useShield(it, command.packageName) }
+            is WireCommand.SetLimit -> applyDemo { demoEngine.setMonsterLimit(it, command.packageName, command.minutes) }
+            is WireCommand.Revive -> if (command.pin != DEMO_PIN) {
+                return CommandOutcome.Rejected(CommandResult(command.requestId, ok = false, wrongPin = true))
+            } else applyDemo { demoEngine.revive(it) }
+            is WireCommand.RequestSync -> return CommandOutcome.Ok
+        }
+        return if (out?.rejection == null) CommandOutcome.Ok
+        else CommandOutcome.Rejected(CommandResult(command.requestId, ok = false, rejection = out.rejection))
+    }
+
     companion object {
+        /** PIN del modo demo para probar "Revivir". */
+        const val DEMO_PIN = "1234"
+        private const val DEMO_TICK_MS = 6_000L
+        private const val LOAD_TIMEOUT_MS = 3_000L
         private const val COMMAND_TIMEOUT_MS = 6_000L
         fun newRequestId(): String = UUID.randomUUID().toString()
     }
