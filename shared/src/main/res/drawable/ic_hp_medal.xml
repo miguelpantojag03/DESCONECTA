@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generado desde PixelIcons.kt (MEDAL). Monocromo: se tiñe con tint. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M3,0h3v1h-3zM10,0h3v1h-3zM3,1h3v1h-3zM10,1h3v1h-3zM4,2h3v1h-3zM9,2h3v1h-3zM4,3h3v1h-3zM9,3h3v1h-3zM5,4h6v1h-6zM6,5h4v1h-4zM5,6h6v1h-6zM4,7h8v1h-8zM3,8h10v1h-10zM3,9h10v1h-10zM3,10h10v1h-10zM3,11h10v1h-10zM3,12h10v1h-10zM3,13h10v1h-10zM4,14h8v1h-8zM5,15h6v1h-6z" />
+</vector>

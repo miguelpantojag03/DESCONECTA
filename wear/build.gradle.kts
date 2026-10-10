@@ -48,7 +48,10 @@ dependencies {
     implementation(libs.play.services.wearable)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.wear.tiles)
-    implementation(libs.wear.protolayout.material3)
+    implementation(libs.wear.protolayout)
+    implementation(libs.wear.protolayout.material)
+    implementation(libs.wear.ambient)
+    implementation(libs.concurrent.futures.ktx)
     implementation(libs.wear.complications.data.source.ktx)
 
     implementation(libs.hilt.android)
