@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.desconecta.hp.shared.designsystem.spacing.HpSpacing
@@ -30,6 +29,11 @@ import com.desconecta.hp.shared.designsystem.theme.HpFormFactor
 import com.desconecta.hp.shared.designsystem.theme.HpTheme
 import com.desconecta.hp.shared.model.Health
 import com.desconecta.hp.shared.model.MonsterArt
+
+// Dispositivos de Wear OS (mismos ids que WearDevices, sin depender de wear-tooling en shared).
+internal const val SMALL_ROUND = "id:wearos_small_round"
+internal const val LARGE_ROUND = "id:wearos_large_round"
+internal const val SQUARE = "id:wearos_square"
 
 // Datos de prueba realistas: 120 HP = 2 h diarias.
 private val Healthy = Health(84, 120)   // 1 h 24 min
@@ -70,31 +74,31 @@ private fun still(health: Health) = HealthBarFrame.still(health, Hp.colors.forSt
 // Reloj redondo
 // -------------------------------------------------------------------------------------
 
-@Preview(name = "Redondo · Saludable", device = Devices.WEAR_OS_SMALL_ROUND, showSystemUi = true)
+@Preview(name = "Redondo · Saludable", device = SMALL_ROUND, showSystemUi = true)
 @Composable
 private fun RoundHealthy() = Watch {
     HealthBar(Healthy, variant = HealthBarVariant.ARC, attacker = Medusa)
 }
 
-@Preview(name = "Redondo · Herido", device = Devices.WEAR_OS_SMALL_ROUND, showSystemUi = true)
+@Preview(name = "Redondo · Herido", device = SMALL_ROUND, showSystemUi = true)
 @Composable
 private fun RoundHurt() = Watch {
     HealthBar(Hurt, variant = HealthBarVariant.ARC, attacker = ReyAutoplay)
 }
 
-@Preview(name = "Redondo · Crítico", device = Devices.WEAR_OS_SMALL_ROUND, showSystemUi = true)
+@Preview(name = "Redondo · Crítico", device = SMALL_ROUND, showSystemUi = true)
 @Composable
 private fun RoundCritical() = Watch {
     HealthBar(Critical, variant = HealthBarVariant.ARC, attacker = Scrollzilla)
 }
 
-@Preview(name = "Redondo · Game Over", device = Devices.WEAR_OS_SMALL_ROUND, showSystemUi = true)
+@Preview(name = "Redondo · Game Over", device = SMALL_ROUND, showSystemUi = true)
 @Composable
 private fun RoundGameOver() = Watch {
     HealthBar(GameOver, variant = HealthBarVariant.ARC)
 }
 
-@Preview(name = "Redondo · Regenerando", device = Devices.WEAR_OS_SMALL_ROUND, showSystemUi = true)
+@Preview(name = "Redondo · Regenerando", device = SMALL_ROUND, showSystemUi = true)
 @Composable
 private fun RoundRegenerating() = Watch {
     // Momento congelado: avance cian por delante de la barra + partículas a mitad de vuelo.
@@ -105,7 +109,7 @@ private fun RoundRegenerating() = Watch {
     HealthBarLayout(Regen, frame, variant = HealthBarVariant.ARC)
 }
 
-@Preview(name = "Redondo · Golpe (fantasma + destello)", device = Devices.WEAR_OS_SMALL_ROUND, showSystemUi = true)
+@Preview(name = "Redondo · Golpe (fantasma + destello)", device = SMALL_ROUND, showSystemUi = true)
 @Composable
 private fun RoundHit() = Watch {
     // 50 ms después de un golpe de Scrollzilla: la barra ya bajó, la fantasma sigue arriba.
@@ -113,25 +117,25 @@ private fun RoundHit() = Watch {
     HealthBarLayout(Hurt, frame, variant = HealthBarVariant.ARC, attacker = Scrollzilla)
 }
 
-@Preview(name = "Redondo · Ambient", device = Devices.WEAR_OS_SMALL_ROUND, showSystemUi = true)
+@Preview(name = "Redondo · Ambient", device = SMALL_ROUND, showSystemUi = true)
 @Composable
 private fun RoundAmbient() = Watch(ambient = true) {
     HealthBar(Hurt, variant = HealthBarVariant.ARC, attacker = Medusa)
 }
 
-@Preview(name = "Redondo · Alto contraste", device = Devices.WEAR_OS_SMALL_ROUND, showSystemUi = true)
+@Preview(name = "Redondo · Alto contraste", device = SMALL_ROUND, showSystemUi = true)
 @Composable
 private fun RoundHighContrast() = Watch(highContrast = true) {
     HealthBar(Critical, variant = HealthBarVariant.ARC)
 }
 
-@Preview(name = "Redondo grande · 180 HP", device = Devices.WEAR_OS_LARGE_ROUND, showSystemUi = true)
+@Preview(name = "Redondo grande · 180 HP", device = LARGE_ROUND, showSystemUi = true)
 @Composable
 private fun RoundLarge() = Watch {
     HealthBar(Health(133, 180), variant = HealthBarVariant.ARC, attacker = Medusa)
 }
 
-@Preview(name = "Redondo · Texto grande", device = Devices.WEAR_OS_SMALL_ROUND, showSystemUi = true, fontScale = 1.24f)
+@Preview(name = "Redondo · Texto grande", device = SMALL_ROUND, showSystemUi = true, fontScale = 1.24f)
 @Composable
 private fun RoundLargeText() = Watch {
     HealthBar(Healthy, variant = HealthBarVariant.ARC)
@@ -141,19 +145,19 @@ private fun RoundLargeText() = Watch {
 // Reloj cuadrado
 // -------------------------------------------------------------------------------------
 
-@Preview(name = "Cuadrado · Saludable", device = Devices.WEAR_OS_SQUARE, showSystemUi = true)
+@Preview(name = "Cuadrado · Saludable", device = SQUARE, showSystemUi = true)
 @Composable
 private fun SquareHealthy() = Watch {
     HealthBar(Healthy, Modifier.padding(HpSpacing.lg), variant = HealthBarVariant.LINEAR, attacker = Medusa)
 }
 
-@Preview(name = "Cuadrado · Crítico", device = Devices.WEAR_OS_SQUARE, showSystemUi = true)
+@Preview(name = "Cuadrado · Crítico", device = SQUARE, showSystemUi = true)
 @Composable
 private fun SquareCritical() = Watch {
     HealthBar(Critical, Modifier.padding(HpSpacing.lg), variant = HealthBarVariant.LINEAR, attacker = Scrollzilla)
 }
 
-@Preview(name = "Cuadrado · Ambient", device = Devices.WEAR_OS_SQUARE, showSystemUi = true)
+@Preview(name = "Cuadrado · Ambient", device = SQUARE, showSystemUi = true)
 @Composable
 private fun SquareAmbient() = Watch(ambient = true) {
     HealthBar(Hurt, Modifier.padding(HpSpacing.lg), variant = HealthBarVariant.LINEAR)
