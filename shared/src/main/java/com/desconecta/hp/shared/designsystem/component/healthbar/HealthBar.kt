@@ -301,15 +301,17 @@ fun HealthReadout(
             BasicText(formatMinutes(health.clamped), style = type.caption.copy(color = colors.textPrimary))
         }
     } else {
-        Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-            BasicText("$number", style = type.hpNumber.copy(color = numberColor))
-            Spacer(Modifier.width(HpSpacing.sm))
-            Column(Modifier.padding(bottom = 2.dp)) {
-                BasicText("de ${health.max} $unit", style = type.hpMax.copy(color = colors.textSecondary))
-                BasicText(formatMinutes(health.clamped), style = type.caption.copy(color = colors.textPrimary))
+        // Teléfono: el estado va en su propia línea para no partirse junto al número.
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(HpSpacing.sm)) {
+            StatusTag(visual.icon, visual.label, visual.color)
+            Row(verticalAlignment = Alignment.Bottom) {
+                BasicText("$number", style = type.hpNumber.copy(color = numberColor))
+                Spacer(Modifier.width(HpSpacing.sm))
+                Column(Modifier.padding(bottom = 2.dp)) {
+                    BasicText("de ${health.max} $unit", style = type.hpMax.copy(color = colors.textSecondary))
+                    BasicText(formatMinutes(health.clamped), style = type.caption.copy(color = colors.textPrimary))
+                }
             }
-            Spacer(Modifier.weight(1f))
-            StatusTag(visual.icon, visual.label, visual.color, Modifier.padding(bottom = 4.dp))
         }
     }
 }

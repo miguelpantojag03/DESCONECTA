@@ -39,6 +39,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -242,7 +244,12 @@ private fun DayCell(date: LocalDate, day: DaySummary?) {
             Text(
                 "${date.dayOfMonth}",
                 style = Hp.type.caption,
-                color = if (day != null && day.fractionLeft > 0.5f) c.onAccent else c.textSecondary,
+                // Texto negro o blanco según la luminancia real de la casilla (contraste AA).
+                color = when {
+                    day == null -> c.textSecondary
+                    bg.compositeOver(c.surface).luminance() > 0.3f -> c.onAccent
+                    else -> c.textPrimary
+                },
             )
         }
     }
