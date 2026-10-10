@@ -30,6 +30,8 @@ object PixelIcons {
     val MedalLocked: ImageVector by lazy { pixelIcon("MedalLocked", MEDAL.outline()) }
     val Skull: ImageVector by lazy { pixelIcon("Skull", SKULL) }
     val Star: ImageVector by lazy { pixelIcon("Star", STAR) }
+    val Lock: ImageVector by lazy { pixelIcon("Lock", LOCK) }
+    val Watch: ImageVector by lazy { pixelIcon("Watch", WATCH) }
 
     /** Todos, para el catálogo del sistema de diseño. */
     val all: List<Pair<String, ImageVector>> by lazy {
@@ -38,6 +40,7 @@ object PixelIcons {
             "Contorno" to HeartOutline, "Poción" to Potion, "Escudo" to Shield,
             "Revivir" to Revive, "Racha" to Flame, "Medalla" to Medal,
             "Bloqueada" to MedalLocked, "Game Over" to Skull, "XP" to Star,
+            "Permiso" to Lock, "Reloj" to Watch,
         )
     }
 
@@ -188,6 +191,44 @@ object PixelIcons {
         "..XXXX....XXXX..",
         "..XXX......XXX..",
         ".XX..........XX.",
+        "................",
+    )
+
+    private val LOCK = listOf(
+        "................",
+        ".....XXXXXX.....",
+        "....XX....XX....",
+        "....X......X....",
+        "....X......X....",
+        "....X......X....",
+        "..XXXXXXXXXXXX..",
+        "..XXXXXXXXXXXX..",
+        "..XXXXXooXXXXX..",
+        "..XXXXXooXXXXX..",
+        "..XXXXXooXXXXX..",
+        "..XXXXXXXXXXXX..",
+        "..XXXXXXXXXXXX..",
+        "..XXXXXXXXXXXX..",
+        "................",
+        "................",
+    )
+
+    private val WATCH = listOf(
+        ".....XXXXXX.....",
+        ".....XXXXXX.....",
+        "....XXXXXXXX....",
+        "...XX......XX...",
+        "..XX........XX..",
+        "..X....X.....X..",
+        "..X....X.....XX.",
+        "..X....XXX...XX.",
+        "..X..........X..",
+        "..XX........XX..",
+        "...XX......XX...",
+        "....XXXXXXXX....",
+        ".....XXXXXX.....",
+        ".....XXXXXX.....",
+        "................",
         "................",
     )
 

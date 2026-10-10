@@ -83,7 +83,7 @@ fun DesignSystemCatalog(modifier: Modifier = Modifier) {
                 val tints = listOf(c.hpHealthy, c.hpHurt, c.hpCritical, c.hpCritical, c.regen, c.regen, c.regen, c.hpHurt, c.gold, c.textSecondary, c.textSecondary, c.xp)
                 PixelIcons.all.forEachIndexed { i, (name, icon) ->
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Image(icon, contentDescription = name, Modifier.size(32.dp), colorFilter = ColorFilter.tint(tints[i]))
+                        Image(icon, contentDescription = name, Modifier.size(32.dp), colorFilter = ColorFilter.tint(tints.getOrElse(i) { c.textSecondary }))
                         BasicText(name, style = Hp.type.caption.copy(color = c.textSecondary))
                     }
                 }

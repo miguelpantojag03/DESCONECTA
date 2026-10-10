@@ -252,7 +252,7 @@ class GameEngine(private val clock: () -> Long = System::currentTimeMillis) {
             usedMinutesToday = 0,
             regenToday = 0,
             phase = GamePhase.PLAYING,
-            monsters = next.monsters.map { it.copy(usedMinutes = 0, shieldUntil = null) },
+            monsters = next.monsters.map { it.copy(usedMinutes = 0, shieldUntil = null, history = (it.history + it.usedMinutes).takeLast(6)) },
             boss = boss,
             potionsUsedToday = 0,
             revivedToday = false,

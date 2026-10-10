@@ -19,7 +19,11 @@ data class Monster(
     val limitMinutes: Int,
     val usedMinutes: Int = 0,
     val shieldUntil: Long? = null,
+    /** Minutos usados los 6 días anteriores (el más reciente al final), para la gráfica semanal. */
+    val history: List<Int> = emptyList(),
 ) {
+    /** Últimos 7 días incluyendo hoy. */
+    val week: List<Int> get() = history.takeLast(6) + usedMinutes
     val remainingMinutes: Int get() = (limitMinutes - usedMinutes).coerceAtLeast(0)
     val isDefeated: Boolean get() = usedMinutes >= limitMinutes
     val health: Health get() = Health(remainingMinutes, limitMinutes.coerceAtLeast(1))
@@ -114,6 +118,16 @@ data class WeeklyBoss(
     val failed: Boolean get() = usedMinutes > budgetMinutes
 }
 
+/** Preferencias de interfaz que el teléfono comparte con el reloj. */
+@Serializable
+data class UiSettings(
+    val haptics: Boolean = true,
+    val sound: Boolean = false,
+    /** null = seguir al sistema. */
+    val reducedMotion: Boolean? = null,
+    val highContrast: Boolean = false,
+)
+
 @Serializable
 enum class GamePhase { PLAYING, GAME_OVER }
 
@@ -139,6 +153,9 @@ data class GameState(
     val potionsUsedToday: Int = 0,
     val revivedToday: Boolean = false,
     val activeAttacker: String? = null,    // packageName del monstruo que ataca ahora
+    val settings: UiSettings = UiSettings(),
+    /** El usuario está en pausa (sin usar el teléfono) y acumulando regeneración. */
+    val regenerating: Boolean = false,
     val updatedAt: Long = 0L,
 ) {
     val currentHp: Int get() = hp.coerceIn(0, maxHp)
