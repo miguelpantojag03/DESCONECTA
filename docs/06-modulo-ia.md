@@ -150,14 +150,35 @@ wear/src/main/java/com/desconecta/hp/wear/ui/ai/          ← solo interfaz: bur
 - **Funciones que nunca van a la nube:** voz, berserker, oráculo y contexto. Son las que tocan datos más
   personales o necesitan responder en menos de 2 s.
 
+## Paso 4: tokens visuales de la IA
+
+Código: `shared/.../designsystem/component/ai/` (`AiComponents.kt`, `AiStateView.kt`, `AiShowcase.kt`).
+Capturas: `docs/screenshots/phone/18_ia_tokens.png` y `docs/screenshots/wear/24–26_ia_tokens*.png`.
+
+| Token | Valor | Por qué |
+|---|---|---|
+| Color `ai` | #7CF5D9 (contenedor #17332E) | Contraste AAA: 15,9:1 sobre negro, 11,9:1 sobre superficie elevada, 12,5:1 para el texto sobre su contenedor. |
+| Distancia a otros acentos | ΔE ≈ 37 frente al cian de regeneración y al verde de vida | Se distingue, pero es de la misma familia de tonos. Para alguien con daltonismo verde-rojo podría parecerse al verde, así que **el color nunca va solo**: el cristal es obligatorio. La IA nunca rellena barras de HP, porque opina y no es un dato del juego. |
+| Ícono | Bola de cristal pixelada 16×16 (`PixelIcons.Crystal`) | Marca **todo** contenido generado (People + AI: identificar la IA). Misma familia pixel que el resto de íconos de juego. |
+| Burbuja | Esquinas pixeladas (2 escalones), borde de 2 dp en `ai`, fondo `aiContainer`, cola hacia el avatar | Es el compañero quien habla; la cola une el mensaje con quien lo dice (Gestalt: conexión). La cola va arriba en el reloj (avatar encima) y al lado en el teléfono (avatar a la izquierda). |
+| Burbuja en el reloj | 1 línea, toca para expandir (hasta 4) | Sección 6.1. No compite con la barra de vida (jerarquía) y respeta los 80 caracteres. |
+| "Pensando" | Cristal + 3 puntos que se encienden por pasos (300 ms) | Nunca un spinner genérico. Con movimiento reducido, los puntos quedan fijos y el texto "Pensando" basta. |
+| Confianza | Palabras + 3 barritas: "Quizá · poca certeza" (en ámbar), "Probablemente", "Casi seguro" | Nunca porcentajes crudos (People + AI). Con certeza baja se **dice** claramente. |
+| ¿Por qué? | Botón de 48 dp que muestra el motivo y el origen (reglas, teléfono o nube) | Explicabilidad (People + AI); área táctil mínima (ley de Fitts). |
+| 👍 / 👎 | 48 dp, el elegido resaltado | Retroalimentación que se guarda en `ai_insights.feedback`. |
+| Aprendizaje | "La IA está conociéndote: día 3 de 7" + 7 segmentos | Fija expectativas en vez de mostrar predicciones poco fiables (People + AI: *set expectations*). |
+| Estados sin resultado | Tarjeta con ícono, título, explicación y acción opcional | Los 9 estados de la sección 9: ninguno queda en blanco y todos dicen qué hacer (Nielsen nº 1 y nº 9). |
+| Accesibilidad | Todo se anuncia como "Sugerencia de la IA: …" | Quien usa TalkBack también distingue la IA de los datos reales. |
+| Ambient | El acento de la IA pasa a blanco y su contenedor a negro | Se mantienen las reglas de bajo consumo. |
+
 ## Plan unificado (los dos prompts)
 
 | # | Entregable | Origen |
 |---|---|---|
 | 1 | Arquitectura general + arquitectura de IA | Supabase 1 + IA 1 ✅ |
 | 2 | Estructura de carpetas e interfaces de `AiEngine` | IA 2 ✅ |
-| 3 | Migraciones SQL completas (juego + IA), RLS, triggers, RPC, retención y datos seed | Supabase 2–3 + IA 3 |
-| 4 | Tokens visuales de IA | IA 4 |
+| 3 | Migraciones SQL completas (juego + IA), RLS, triggers, RPC, retención y datos seed | Supabase 2–3 + IA 3 ✅ |
+| 4 | Tokens visuales de IA | IA 4 ✅ |
 | 5 | Capa de datos Kotlin: cliente Supabase con Hilt, Room, repositorios offline-first, SyncWorker, Realtime; se quita el vínculo Wi‑Fi | Supabase 4 |
 | 6 | Pantallas de autenticación + consentimiento + exportar y borrar cuenta | Supabase 5 + 10 |
 | 7 | Funciones de IA por fases: Oráculo → coach → voz → berserker → diario → jefes → límites → contexto (con pantallas, previews de los 9 estados y justificación) | IA 5, 7, 8 |

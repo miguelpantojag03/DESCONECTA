@@ -120,4 +120,10 @@ class WatchScreenshots {
     // --- Estados generales ---------------------------------------------------------------
     @Test fun cargando() = shot("22_cargando") { WatchLoading() }
     @Test fun sin_partida() = shot("23_sin_partida") { WatchNoGame(connected = false, onRetry = {}) }
+
+    // --- IA: tokens visuales -------------------------------------------------------------
+    @Test fun ia_tokens() = shot("24_ia_tokens") { com.desconecta.hp.shared.designsystem.component.ai.AiWatchSample() }
+    @Config(qualifiers = SQUARE)
+    @Test fun ia_tokens_cuadrado() = shot("25_ia_tokens_cuadrado") { com.desconecta.hp.shared.designsystem.component.ai.AiWatchSample() }
+    @Test fun ia_tokens_ambient() = shot("26_ia_tokens_ambient", ambient = true) { com.desconecta.hp.shared.designsystem.component.ai.AiWatchSample() }
 }

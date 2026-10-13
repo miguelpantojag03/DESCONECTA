@@ -37,6 +37,10 @@ data class HpColors(
     val xp: Color,
     val gold: Color,
 
+    // IA: acento propio para que el usuario distinga siempre IA de datos reales.
+    val ai: Color = HpPalette.Mint,
+    val aiContainer: Color = HpPalette.MintContainer,
+
     // Contenedores tintados (fondos de tarjetas de estado)
     val healthyContainer: Color,
     val hurtContainer: Color,
@@ -134,6 +138,8 @@ object HpColorSchemes {
         regen = HpPalette.Snow,
         xp = HpPalette.Snow,
         gold = HpPalette.Snow,
+        ai = HpPalette.Snow,
+        aiContainer = HpPalette.Black,
         healthyContainer = HpPalette.Black,
         hurtContainer = HpPalette.Black,
         criticalContainer = HpPalette.Black,

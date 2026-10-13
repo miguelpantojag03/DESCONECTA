@@ -32,6 +32,8 @@ object PixelIcons {
     val Star: ImageVector by lazy { pixelIcon("Star", STAR) }
     val Lock: ImageVector by lazy { pixelIcon("Lock", LOCK) }
     val Watch: ImageVector by lazy { pixelIcon("Watch", WATCH) }
+    /** "Cristal mágico": marca TODO contenido generado por la IA. */
+    val Crystal: ImageVector by lazy { pixelIcon("Crystal", CRYSTAL) }
 
     /** Todos, para el catálogo del sistema de diseño. */
     val all: List<Pair<String, ImageVector>> by lazy {
@@ -40,7 +42,7 @@ object PixelIcons {
             "Contorno" to HeartOutline, "Poción" to Potion, "Escudo" to Shield,
             "Revivir" to Revive, "Racha" to Flame, "Medalla" to Medal,
             "Bloqueada" to MedalLocked, "Game Over" to Skull, "XP" to Star,
-            "Permiso" to Lock, "Reloj" to Watch,
+            "Permiso" to Lock, "Reloj" to Watch, "IA" to Crystal,
         )
     }
 
@@ -210,6 +212,26 @@ object PixelIcons {
         "..XXXXXXXXXXXX..",
         "..XXXXXXXXXXXX..",
         "................",
+        "................",
+    )
+
+    /** Bola de cristal con brillo (huecos) sobre su base sombreada. */
+    private val CRYSTAL = listOf(
+        "................",
+        "......XXXX......",
+        "....XXXXXXXX....",
+        "...XX..XXXXXX...",
+        "..XX.XXXXXXXXX..",
+        "..XXXXXXXXXXXX..",
+        "..XXXXXXXXXX.X..",
+        "..XXXXXXXXX.XX..",
+        "...XXXXXXXXXX...",
+        "....XXXXXXXX....",
+        "......XXXX......",
+        "....oooooooo....",
+        "...oooooooooo...",
+        "..XXXXXXXXXXXX..",
+        "..XXXXXXXXXXXX..",
         "................",
     )
 

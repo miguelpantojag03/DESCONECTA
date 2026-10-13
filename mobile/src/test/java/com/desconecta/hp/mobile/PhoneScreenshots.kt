@@ -93,4 +93,7 @@ class PhoneScreenshots {
         SettingsScreen(game, PhonePrefs(true, 120, 30, true), allGranted, { _, _ -> }, {}, {}, {}, {}, {})
     }
     @Test fun catalogo() = shot("17_sistema_de_diseno") { DesignSystemCatalog() }
+
+    @Config(qualifiers = "w411dp-h1600dp-xxhdpi")
+    @Test fun ia_tokens() = shot("18_ia_tokens") { com.desconecta.hp.shared.designsystem.component.ai.AiDesignSheet() }
 }

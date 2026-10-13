@@ -47,6 +47,11 @@ object HpPalette {
     val Purple = Color(0xFFB57BFF)   // XP / niveles
     val Gold = Color(0xFFFFD166)     // logros
 
+    // IA ("cristal mágico"). Contraste AAA: 15,9 sobre negro, 11,9 sobre superficie elevada.
+    // ΔE ≈ 37 frente al cian de regeneración y al verde de vida: distinto, pero de la misma
+    // familia; por eso el contenido de IA SIEMPRE lleva además el ícono de cristal.
+    val Mint = Color(0xFF7CF5D9)
+
     // Variantes oscuras para fondos de contenedores (tinte de ~15 % sobre Ink900).
     val GreenContainer = Color(0xFF1C3A2E)
     val AmberContainer = Color(0xFF3D3420)
@@ -54,4 +59,5 @@ object HpPalette {
     val CyanContainer = Color(0xFF1C3540)
     val PurpleContainer = Color(0xFF2E2445)
     val GoldContainer = Color(0xFF3D3626)
+    val MintContainer = Color(0xFF17332E)
 }
