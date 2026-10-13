@@ -32,14 +32,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Código para vincular un reloj por Wi‑Fi. */
-sealed interface LinkCodeState {
-    data object Idle : LinkCodeState
-    data object Loading : LinkCodeState
-    data class Ready(val code: String, val expiresAt: Long) : LinkCodeState
-    data class Error(val message: String) : LinkCodeState
-}
-
 /** Carga de la lista de apps instaladas (con estados de carga / error). */
 sealed interface AppsState {
     data object Loading : AppsState
@@ -55,16 +47,18 @@ class MainViewModel @Inject constructor(
     private val permissionChecker: PermissionChecker,
     private val appCatalog: AppCatalog,
     private val services: GameServices,
+    private val auth: com.desconecta.hp.mobile.cloud.AuthRepository,
+    private val syncQueue: com.desconecta.hp.mobile.sync.SyncQueue,
+    private val remote: com.desconecta.hp.mobile.cloud.RemoteGameApi,
     db: HpDatabase,
 ) : ViewModel() {
 
     val game: StateFlow<GameState?> = repository.state
     val loaded: StateFlow<Boolean> = repository.loaded
     val watchConnected: StateFlow<Boolean> = repository.watchConnected
-    val cloudStatus: StateFlow<com.desconecta.hp.mobile.data.CloudStatus> = repository.cloudStatus
-
-    private val _linkCode = MutableStateFlow<LinkCodeState>(LinkCodeState.Idle)
-    val linkCode: StateFlow<LinkCodeState> = _linkCode.asStateFlow()
+    val authState: StateFlow<com.desconecta.hp.mobile.cloud.AuthState> = auth.state
+    val syncStatus: StateFlow<com.desconecta.hp.mobile.sync.SyncStatus> = syncQueue.status
+    val pendingSync: StateFlow<Int> = syncQueue.pendingCount.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
     val prefs: StateFlow<PhonePrefs?> = store.prefs.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val history: StateFlow<List<DaySummary>?> = db.history().recent()
@@ -147,21 +141,20 @@ class MainViewModel @Inject constructor(
 
     fun setMaxHp(weekday: Int, weekendBonus: Int) = viewModelScope.launch { repository.setMaxHp(weekday, weekendBonus) }
 
-    fun setPin(pin: String) = viewModelScope.launch { store.setPin(pin) }
+    fun setPin(pin: String) = viewModelScope.launch { repository.setPin(pin) }
 
     fun setStudyMode(minutes: Int) = viewModelScope.launch { repository.setStudyMode(minutes) }
 
     fun resetGame() = viewModelScope.launch { repository.reset() }
 
-    fun createLinkCode() = viewModelScope.launch {
-        _linkCode.value = LinkCodeState.Loading
-        _linkCode.value = repository.createWatchLinkCode().fold(
-            onSuccess = { LinkCodeState.Ready(it, System.currentTimeMillis() + 10 * 60_000L) },
-            onFailure = { LinkCodeState.Error(it.message ?: "No se pudo generar el código") },
-        )
+
+    fun syncNow() = syncQueue.scheduleNow()
+
+    fun signOut() = viewModelScope.launch {
+        auth.signOut()
+        syncQueue.cancelAll()
     }
 
-    fun dismissLinkCode() { _linkCode.value = LinkCodeState.Idle }
-
-    fun unlinkCloudWatches() = viewModelScope.launch { repository.unlinkCloudWatches() }
+    /** Exportar todos mis datos (JSON). Devuelve el texto o el error. */
+    suspend fun exportData(): Result<String> = runCatching { remote.exportMyData() }
 }

@@ -92,21 +92,6 @@ class WatchViewModel @Inject constructor(
 
     fun startDemo() = repository.startDemo()
 
-    val cloudAvailable: Boolean get() = repository.cloudAvailable
-    val cloudLinked: Boolean get() = repository.cloudLinked
-
-    /** Canjea el código del teléfono para sincronizar por Wi‑Fi (Supabase). */
-    fun linkWithCode(code: String) {
-        if (_action.value == ActionState.Sending) return
-        _action.value = ActionState.Sending
-        viewModelScope.launch {
-            val result = repository.linkWithCode(code)
-            _action.value = if (result.isSuccess) ActionState.Success("¡Reloj vinculado por Wi‑Fi!")
-            else ActionState.Failure(result.exceptionOrNull()?.message ?: "No se pudo vincular", retryable = true)
-        }
-    }
-
-    fun unlinkCloud() = viewModelScope.launch { repository.unlinkCloud() }
 
     fun usePotion(wakeMonster: String? = null) = run(
         WireCommand.UsePotion(WatchGameRepository.newRequestId(), wakeMonster),
@@ -159,6 +144,7 @@ class WatchViewModel @Inject constructor(
         Rejection.NOT_GAME_OVER -> "Revivir solo funciona en Game Over."
         Rejection.NOT_AVAILABLE -> "Revivir ya se usó esta semana."
         Rejection.UNKNOWN_MONSTER -> "Ese monstruo ya no existe."
+        Rejection.NEEDS_CONNECTION -> "Revivir necesita que tu teléfono tenga internet."
         Rejection.REGEN_CAP, null -> "No se pudo completar la acción."
     }
 }

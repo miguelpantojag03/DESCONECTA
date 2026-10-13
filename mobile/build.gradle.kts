@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -9,6 +10,14 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.roborazzi)
 }
+
+// Credenciales de Supabase: SOLO en local.properties (no se sube a git).
+//   supabase.url=https://xxxx.supabase.co
+//   supabase.key=<anon / publishable key>      ← nunca la service_role
+val localProps = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+}
+fun localProp(name: String) = (localProps.getProperty(name) ?: "").replace("\"", "")
 
 android {
     namespace = "com.desconecta.hp.mobile"
@@ -21,6 +30,8 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        buildConfigField("String", "SUPABASE_URL", "\"${localProp("supabase.url")}\"")
+        buildConfigField("String", "SUPABASE_KEY", "\"${localProp("supabase.key")}\"")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -28,9 +39,11 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     testOptions {
         unitTests.isIncludeAndroidResources = true
+        unitTests.all { it.systemProperty("hp.integration", System.getProperty("hp.integration") ?: "false") }
     }
 }
 
@@ -62,6 +75,15 @@ dependencies {
     ksp(libs.room.compiler)
     implementation(libs.datastore.preferences)
     implementation(libs.work.runtime.ktx)
+
+    // Supabase (solo el teléfono habla con la nube)
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.supabase.auth)
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.realtime)
+    implementation(libs.supabase.storage)
+    implementation(libs.supabase.functions)
+    implementation(libs.ktor.client.okhttp)
 
     debugImplementation(libs.compose.ui.tooling)
 

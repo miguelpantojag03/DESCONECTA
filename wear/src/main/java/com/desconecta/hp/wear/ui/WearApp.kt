@@ -28,7 +28,6 @@ import com.desconecta.hp.wear.ui.inventory.ConfirmItemScreen
 import com.desconecta.hp.wear.ui.inventory.InventoryScreen
 import com.desconecta.hp.wear.ui.inventory.PinScreen
 import com.desconecta.hp.wear.ui.inventory.ShieldTargetScreen
-import com.desconecta.hp.wear.ui.link.LinkScreen
 import com.desconecta.hp.wear.ui.monsters.MonsterDetailScreen
 import com.desconecta.hp.wear.ui.monsters.MonstersScreen
 import com.desconecta.hp.wear.ui.profile.BossScreen
@@ -41,7 +40,6 @@ private object Routes {
     const val SHIELD_TARGET = "shield-target"
     const val CONFIRM = "confirm/{item}?pkg={pkg}"
     const val PIN = "pin"
-    const val LINK = "link"
     fun monster(pkg: String) = "monster/$pkg"
     fun confirm(item: ItemType, pkg: String? = null) = "confirm/${item.name}" + (pkg?.let { "?pkg=$it" } ?: "")
 }
@@ -71,7 +69,9 @@ fun WearApp(
         val lastSync = formatAgo(now, snapshot.lastSyncAt)
         when {
             game == null && snapshot.loading -> WatchLoading()
-            game == null -> AppScaffold { NoGameNavigation(connected, viewModel) }
+            game == null -> AppScaffold {
+                WatchNoGame(connected, onRetry = { viewModel.retryConnection() }, onDemo = { viewModel.startDemo() })
+            }
             // Ambient: solo el HUD simplificado, sin navegación ni alertas.
             ambient -> HudScreen(game, connected, lastSync, ambient = true)
             else -> AppScaffold {
@@ -173,32 +173,6 @@ private fun GameNavigation(
         }
         composable(Routes.PIN) {
             PinScreen(action = action, onSubmit = viewModel::revive, onDone = done)
-        }
-        composable(Routes.LINK) {
-            LinkScreen(action = action, onSubmit = viewModel::linkWithCode, onDone = done)
-        }
-    }
-}
-
-/** Sin partida: reintentar, demo o vincular por Wi‑Fi (con su propia navegación). */
-@Composable
-private fun NoGameNavigation(connected: Boolean, viewModel: WatchViewModel) {
-    val nav = rememberSwipeDismissableNavController()
-    val action by viewModel.action.collectAsStateWithLifecycle()
-    SwipeDismissableNavHost(navController = nav, startDestination = Routes.HOME) {
-        composable(Routes.HOME) {
-            WatchNoGame(
-                connected,
-                onRetry = { viewModel.retryConnection() },
-                onDemo = { viewModel.startDemo() },
-                onLink = if (viewModel.cloudAvailable) ({ viewModel.resetAction(); nav.navigate(Routes.LINK) }) else null,
-            )
-        }
-        composable(Routes.LINK) {
-            LinkScreen(action = action, onSubmit = viewModel::linkWithCode, onDone = {
-                viewModel.resetAction()
-                nav.popBackStack(Routes.HOME, inclusive = false)
-            })
         }
     }
 }

@@ -20,6 +20,13 @@ import javax.inject.Singleton
 
 private val Context.dataStore by preferencesDataStore(name = "hp_prefs")
 
+/**
+ * Dónde viven los datos: solo en el teléfono (sin cuenta, Room/DataStore como única base) o
+ * sincronizados con Supabase. Por defecto, solo en el dispositivo hasta que el jugador
+ * crea una cuenta y da su consentimiento.
+ */
+enum class AccountMode { LOCAL_ONLY, CLOUD }
+
 /** Preferencias que no viajan al reloj. */
 data class PhonePrefs(
     val onboardingDone: Boolean = false,
@@ -27,6 +34,9 @@ data class PhonePrefs(
     /** HP extra los sábados y domingos (0 = igual que entre semana). */
     val weekendBonus: Int = 0,
     val hasPin: Boolean = false,
+    val accountMode: AccountMode = AccountMode.LOCAL_ONLY,
+    /** Epoch ms del consentimiento para guardar datos en la nube (0 = no dado). */
+    val cloudConsentAt: Long = 0L,
 )
 
 /**
@@ -43,6 +53,9 @@ class GameStore @Inject constructor(@param:ApplicationContext private val contex
         val WEEKEND_BONUS = intPreferencesKey("weekend_bonus")
         val PIN_HASH = stringPreferencesKey("pin_hash")
         val PIN_SALT = stringPreferencesKey("pin_salt")
+        val ACCOUNT_MODE = stringPreferencesKey("account_mode")
+        val CLOUD_CONSENT = androidx.datastore.preferences.core.longPreferencesKey("cloud_consent_at")
+        val BOUND_USER = stringPreferencesKey("bound_user_id")
     }
 
     val prefs: Flow<PhonePrefs> = context.dataStore.data.map { p ->
@@ -51,6 +64,8 @@ class GameStore @Inject constructor(@param:ApplicationContext private val contex
             maxHpWeekday = p[Keys.MAX_HP] ?: 120,
             weekendBonus = p[Keys.WEEKEND_BONUS] ?: 0,
             hasPin = p[Keys.PIN_HASH] != null,
+            accountMode = runCatching { AccountMode.valueOf(p[Keys.ACCOUNT_MODE] ?: "") }.getOrDefault(AccountMode.LOCAL_ONLY),
+            cloudConsentAt = p[Keys.CLOUD_CONSENT] ?: 0L,
         )
     }
 
@@ -74,6 +89,19 @@ class GameStore @Inject constructor(@param:ApplicationContext private val contex
     }
 
     suspend fun currentPrefs(): PhonePrefs = prefs.first()
+
+    suspend fun setAccountMode(mode: AccountMode, consentAt: Long? = null) = context.dataStore.edit {
+        it[Keys.ACCOUNT_MODE] = mode.name
+        if (consentAt != null) it[Keys.CLOUD_CONSENT] = consentAt
+    }
+
+    /**
+     * Cuenta cuyo progreso hay en la caché local (null = progreso de invitado). Si se entra
+     * con otra cuenta, el progreso local se descarta en vez de mezclarse.
+     */
+    suspend fun boundUserId(): String? = context.dataStore.data.first()[Keys.BOUND_USER]
+
+    suspend fun setBoundUserId(id: String) = context.dataStore.edit { it[Keys.BOUND_USER] = id }
 
     // --- PIN (solo se guarda un hash con sal; nunca el PIN) ------------------------------
 

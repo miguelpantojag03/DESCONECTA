@@ -27,7 +27,7 @@ sealed interface GameEvent {
 enum class HealSource { POTION, REGENERATION, REVIVE }
 
 /** Por qué no se pudo hacer una acción (para mostrar un estado de error claro). */
-enum class Rejection { NO_ITEMS, FULL_HEALTH, GAME_OVER, NOT_GAME_OVER, NOT_AVAILABLE, UNKNOWN_MONSTER, REGEN_CAP }
+enum class Rejection { NO_ITEMS, FULL_HEALTH, GAME_OVER, NOT_GAME_OVER, NOT_AVAILABLE, UNKNOWN_MONSTER, REGEN_CAP, NEEDS_CONNECTION }
 
 data class Outcome(
     val state: GameState,

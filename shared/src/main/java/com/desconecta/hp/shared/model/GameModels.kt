@@ -159,6 +159,8 @@ data class GameState(
     val settings: UiSettings = UiSettings(),
     /** Modo estudio: hasta este instante todos los monstruos están bloqueados. */
     val studyModeUntil: Long = 0L,
+    /** Problema de sincronización que el reloj debe mostrar (p. ej. sesión caducada). null = todo bien. */
+    val syncIssue: String? = null,
     /** El usuario está en pausa (sin usar el teléfono) y acumulando regeneración. */
     val regenerating: Boolean = false,
     val updatedAt: Long = 0L,

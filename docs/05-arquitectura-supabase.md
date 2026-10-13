@@ -103,3 +103,18 @@ UsageStatsManager, el bloqueo por accesibilidad y Device Admin, y el protocolo r
 2. **Revivir requiere conexión**, porque es una acción anti-trampas. Pociones y escudos funcionan offline y el
    servidor los valida al sincronizar; si no cuadran, el inventario se corrige desde `item_events`.
 3. **Google Sign-In** usa Credential Manager con un ID de cliente de Google Cloud (lo tendrás que crear tú).
+4. **El progreso de invitado no pasa a la cuenta** (decidido). Al entrar con una cuenta distinta de la que hay en
+   caché (o de invitado a cuenta), el teléfono descarta XP, nivel, racha, logros, objetos e historial y adopta los
+   de la cuenta; la cola pendiente se vacía y el uso de días pasados no se sube. Se conservan los monstruos, los
+   límites y la vida de hoy (uso real). El perfil local solo se sube si la cuenta es nueva. Antes de entrar se
+   muestra un diálogo que dice qué se pierde y qué se conserva (Nielsen nº 5, prevención de errores). Esto también
+   evita que el progreso de una cuenta se mezcle con otra en un teléfono compartido.
+
+## Entregable 5: capa de datos Kotlin (hecho)
+
+- `cloud/AuthRepository` (email/contraseña, Google con ID token, estados `Unconfigured/LocalOnly/SignedIn/Expired`).
+- `cloud/RemoteGameApi`: PostgREST por columnas permitidas + RPC (`use_item`, `revive`, `close_day`, …).
+- `sync/SyncQueue` + `SyncWorker`: cola en Room con claves de fusión y reintentos con backoff exponencial.
+- `cloud/CloudBridge`: Realtime en 5 tablas (debounce 800 ms), aviso al reloj si caduca la sesión, adopción de cuenta.
+- Uso agregado por hora (`hourly_usage` → `app_usage`, migración 006).
+- Prueba de integración contra el proyecto real: `-Dhp.integration=true` (crea y borra un usuario temporal).

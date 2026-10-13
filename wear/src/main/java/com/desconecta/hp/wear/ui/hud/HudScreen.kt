@@ -79,7 +79,7 @@ fun HudScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
-                if ((!connected || game.regenerating) && !ambient) TopChip(game, connected, lastSyncText, ambient) else Spacer(Modifier.height(1.dp))
+                if ((!connected || game.regenerating || game.syncIssue != null) && !ambient) TopChip(game, connected, lastSyncText, ambient) else Spacer(Modifier.height(1.dp))
                 HealthBar(
                     health = game.health,
                     variant = HealthBarVariant.LINEAR,
@@ -103,7 +103,24 @@ private fun TopChip(game: GameState, connected: Boolean, lastSyncText: String, a
     if (ambient) return
     when {
         !connected -> ConnectionChip(lastSyncText)
+        // Solo si hay un problema: el reloj no muestra el estado de sincronización normal.
+        game.syncIssue != null -> SyncIssueChip(game.syncIssue.orEmpty())
         game.regenerating -> RegenChip()
+    }
+}
+
+@Composable
+private fun SyncIssueChip(text: String) {
+    val c = Hp.colors
+    Row(
+        Modifier
+            .background(c.hurtContainer, Hp.shapes.button)
+            .padding(horizontal = HpSpacing.sm, vertical = 2.dp)
+            .semantics(mergeDescendants = true) { contentDescription = text },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Image(PixelIcons.Lock, null, Modifier.size(14.dp), colorFilter = ColorFilter.tint(c.hpHurt))
+        BasicText(" " + text, style = Hp.type.caption.copy(color = c.textPrimary), maxLines = 1)
     }
 }
 

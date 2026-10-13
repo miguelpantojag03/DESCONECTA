@@ -163,6 +163,14 @@ begin
 end $$;
 
 do $$ begin
+  insert into public.app_usage (package_name, fecha, hora, minutos) values ('com.zhiliaoapp.musically', '2026-10-13', 23, 1)
+  on conflict (user_id, fecha, hora, package_name) do update set minutos = excluded.minutos;
+  raise exception 'FALLO: se añadió uso a un día cerrado';
+exception when check_violation then
+  raise notice 'OK 12b · el uso de un día cerrado no se puede tocar';
+end $$;
+
+do $$ begin
   update public.daily_sessions set hp_final = 120 where fecha = '2026-10-13';
   raise exception 'FALLO: se editó un día cerrado';
 exception when check_violation then

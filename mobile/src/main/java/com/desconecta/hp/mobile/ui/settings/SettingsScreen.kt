@@ -104,7 +104,7 @@ fun SettingsScreen(
             SecondaryButton("Gestionar aliadas", onClick = onOpenAllies)
         }
 
-        SectionLabel("Nube y reloj")
+        SectionLabel("Cuenta y sincronización")
         cloudSection()
 
         SectionLabel("Seguridad")

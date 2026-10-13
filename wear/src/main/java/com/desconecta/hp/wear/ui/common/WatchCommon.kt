@@ -60,7 +60,6 @@ fun WatchNoGame(
     connected: Boolean,
     onRetry: () -> Unit,
     onDemo: () -> Unit = {},
-    onLink: (() -> Unit)? = null,
 ) {
     val listState = androidx.wear.compose.foundation.lazy.rememberScalingLazyListState()
     androidx.wear.compose.material3.ScreenScaffold(scrollState = listState) { padding ->
@@ -79,8 +78,6 @@ fun WatchNoGame(
                 )
             }
             item { Button(onClick = onRetry) { Text("Reintentar") } }
-            // Sin Bluetooth: vincular por Wi‑Fi con el código que muestra el teléfono.
-            if (onLink != null) item { androidx.wear.compose.material3.FilledTonalButton(onClick = onLink) { Text("Vincular con código") } }
             // Para presentar la app sin emparejar: partida de ejemplo en el propio reloj.
             item { androidx.wear.compose.material3.OutlinedButton(onClick = onDemo) { Text("Probar demo") } }
         }

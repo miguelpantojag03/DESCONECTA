@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.library)
@@ -8,13 +7,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// Credenciales de Supabase: SOLO en local.properties (no se sube a git).
-//   supabase.url=https://xxxx.supabase.co
-//   supabase.key=<anon / publishable key>
-val localProps = Properties().apply {
-    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
-}
-fun localProp(name: String) = (localProps.getProperty(name) ?: "").replace("\"", "")
 
 android {
     namespace = "com.desconecta.hp.shared"
@@ -22,8 +14,6 @@ android {
 
     defaultConfig {
         minSdk = 26
-        buildConfigField("String", "SUPABASE_URL", "\"${localProp("supabase.url")}\"")
-        buildConfigField("String", "SUPABASE_KEY", "\"${localProp("supabase.key")}\"")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -31,7 +21,6 @@ android {
     }
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 }
 
@@ -54,12 +43,6 @@ dependencies {
     api(libs.kotlinx.coroutines.android)
     api(libs.kotlinx.serialization.json)
 
-    // Nube: respaldo del estado/historial/logros y sync en tiempo real con el reloj.
-    api(platform(libs.supabase.bom))
-    api(libs.supabase.auth)
-    api(libs.supabase.postgrest)
-    api(libs.supabase.realtime)
-    api(libs.ktor.client.okhttp)
 
     testImplementation(libs.junit)
 }

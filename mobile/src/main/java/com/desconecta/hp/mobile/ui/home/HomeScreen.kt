@@ -75,6 +75,7 @@ fun HomeScreen(
     onOpenAvatar: () -> Unit,
     onOpenSettings: () -> Unit,
     onStudyMode: (Int) -> Unit,
+    syncIndicator: @Composable () -> Unit = {},
 ) {
     val c = Hp.colors
     val p = game.player
@@ -100,6 +101,7 @@ fun HomeScreen(
                         Text("NV ${p.level} · ${p.title}", style = Hp.type.caption, color = c.xp)
                     }
                 }
+                syncIndicator()
                 WatchStatus(watchConnected)
                 IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, contentDescription = "Configuración", tint = c.textPrimary) }
             }

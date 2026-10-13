@@ -52,6 +52,7 @@ import com.desconecta.hp.shared.designsystem.theme.Hp
 import com.desconecta.hp.shared.model.AvatarStyle
 import com.desconecta.hp.shared.model.MonsterArt
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private object Routes {
     const val LOADING = "loading"
@@ -83,8 +84,10 @@ fun PhoneApp(viewModel: MainViewModel) {
     val watchConnected by viewModel.watchConnected.collectAsStateWithLifecycle()
     val history by viewModel.history.collectAsStateWithLifecycle()
     val apps by viewModel.apps.collectAsStateWithLifecycle()
-    val cloudStatus by viewModel.cloudStatus.collectAsStateWithLifecycle()
-    val linkCode by viewModel.linkCode.collectAsStateWithLifecycle()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val syncStatus by viewModel.syncStatus.collectAsStateWithLifecycle()
+    val pendingSync by viewModel.pendingSync.collectAsStateWithLifecycle()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
@@ -177,8 +180,12 @@ fun PhoneApp(viewModel: MainViewModel) {
                         HomeScreen(
                             game = g,
                             history = history,
-                            // Conectado por Bluetooth o, en los últimos 2,5 min, por Wi‑Fi (Supabase).
-                            watchConnected = watchConnected || (cloudStatus.watchSeenAt > 0 && now - cloudStatus.watchSeenAt < 150_000),
+                            watchConnected = watchConnected,
+                            syncIndicator = {
+                                com.desconecta.hp.mobile.ui.settings.SyncIndicator(
+                                    syncStatus, pendingSync, authState is com.desconecta.hp.mobile.cloud.AuthState.SignedIn,
+                                )
+                            },
                             missingPermissions = listOf(HpPermission.USAGE, HpPermission.ACCESSIBILITY, HpPermission.OVERLAY).count { permissions[it] != true },
                             now = now,
                             onOpenPermissions = { nav.navigate(Routes.PERMISSIONS) },
@@ -264,13 +271,27 @@ fun PhoneApp(viewModel: MainViewModel) {
                             onOpenPermissions = { nav.navigate(Routes.PERMISSIONS) },
                             onReset = viewModel::resetGame,
                             cloudSection = {
-                                com.desconecta.hp.mobile.ui.settings.CloudSection(
-                                    status = cloudStatus,
-                                    linkCode = linkCode,
+                                com.desconecta.hp.mobile.ui.settings.AccountSection(
+                                    auth = authState,
+                                    sync = syncStatus,
+                                    pending = pendingSync,
                                     now = now,
-                                    onCreateCode = viewModel::createLinkCode,
-                                    onDismissCode = viewModel::dismissLinkCode,
-                                    onUnlink = viewModel::unlinkCloudWatches,
+                                    // Las pantallas de cuenta llegan en el paso 6.
+                                    onSignIn = { android.widget.Toast.makeText(context, "Inicio de sesión: disponible en la siguiente versión", android.widget.Toast.LENGTH_SHORT).show() },
+                                    onSyncNow = viewModel::syncNow,
+                                    onExport = {
+                                        scope.launch {
+                                            viewModel.exportData()
+                                                .onSuccess { data ->
+                                                    val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+                                                        .setType("application/json")
+                                                        .putExtra(android.content.Intent.EXTRA_TEXT, data)
+                                                    context.startActivity(android.content.Intent.createChooser(send, "Exportar mis datos de HP"))
+                                                }
+                                                .onFailure { android.widget.Toast.makeText(context, "No se pudo exportar: revisa tu conexión", android.widget.Toast.LENGTH_SHORT).show() }
+                                        }
+                                    },
+                                    onSignOut = viewModel::signOut,
                                 )
                             },
                         )

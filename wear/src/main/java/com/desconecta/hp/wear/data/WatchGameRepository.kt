@@ -62,15 +62,13 @@ sealed interface CommandOutcome {
 }
 
 /**
- * Fuente de datos del reloj. El reloj NO ejecuta reglas: refleja el estado que publica
- * el teléfono y le envía comandos ("usar poción"). Si se desconecta, sigue mostrando el
+ * Fuente de datos del reloj. El reloj NO ejecuta reglas ni habla con Supabase: refleja el
+ * estado que publica el teléfono y le envía comandos ("usar poción") por la Data Layer. Si se desconecta, sigue mostrando el
  * último estado (los DataItems quedan guardados localmente) y avisa de que no está al día.
  */
 @Singleton
 class WatchGameRepository @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    private val cloud: CloudWatchLink,
-    private val feedback: WatchFeedback,
 ) {
     private val dataClient = Wearable.getDataClient(context)
     private val messageClient = Wearable.getMessageClient(context)
@@ -83,14 +81,6 @@ class WatchGameRepository @Inject constructor(
     val events: SharedFlow<WireEvent> = _events
 
     private val pending = ConcurrentHashMap<String, CompletableDeferred<CommandResult>>()
-
-    // Conexión por dos vías: Bluetooth (Data Layer) y Wi‑Fi (Supabase). Basta una.
-    @Volatile private var dataLayerConnected = false
-    @Volatile private var cloudConnected = false
-
-    /** true si el reloj está vinculado a la nube por código (aunque no haya red ahora). */
-    val cloudLinked: Boolean get() = cloud.isLinked
-    val cloudAvailable: Boolean get() = cloud.isAvailable
 
     /** Carga el último estado guardado y comprueba la conexión. Se llama al abrir la app. */
     suspend fun refresh() {
@@ -107,10 +97,6 @@ class WatchGameRepository @Inject constructor(
             } finally {
                 items.release()
             }
-        }
-        if (cloud.isLinked) {
-            cloud.fetchState()?.let { applyState(it, System.currentTimeMillis()) }
-            startCloud()
         }
         _snapshot.update { it.copy(loading = false) }
         checkConnection()
@@ -147,48 +133,8 @@ class WatchGameRepository @Inject constructor(
     }
 
     fun setConnected(connected: Boolean) {
-        dataLayerConnected = connected
-        publishConnection()
-    }
-
-    private fun publishConnection() {
         if (_snapshot.value.demo) return
-        val any = dataLayerConnected || cloudConnected
-        _snapshot.update { it.copy(connection = if (any) Connection.CONNECTED else Connection.DISCONNECTED) }
-    }
-
-    // --- Nube (Supabase) ----------------------------------------------------------------
-
-    private suspend fun startCloud() {
-        if (cloud.isListening) return
-        cloud.start(
-            onState = { applyState(it, System.currentTimeMillis()) },
-            onEvent = { event ->
-                feedback.play(event, _snapshot.value.game?.settings?.haptics ?: true)
-                onEvent(event)
-            },
-            onResult = ::onCommandResult,
-            onConnected = { ok ->
-                cloudConnected = ok
-                publishConnection()
-            },
-        )
-    }
-
-    /** Vincula este reloj con el código de 6 dígitos que muestra el teléfono. */
-    suspend fun linkWithCode(code: String): Result<Unit> {
-        val result = cloud.redeem(code)
-        if (result.isSuccess) {
-            _snapshot.update { it.copy(demo = false) }
-            refresh()
-        }
-        return result
-    }
-
-    suspend fun unlinkCloud() {
-        cloud.unlink()
-        cloudConnected = false
-        publishConnection()
+        _snapshot.update { it.copy(connection = if (connected) Connection.CONNECTED else Connection.DISCONNECTED) }
     }
 
     // --- Comandos -----------------------------------------------------------------------
@@ -202,7 +148,7 @@ class WatchGameRepository @Inject constructor(
         }.getOrNull()
         if (node == null) {
             setConnected(false)
-            return if (cloud.isListening) sendViaCloud(command, awaitResult) else CommandOutcome.Offline
+            return CommandOutcome.Offline
         }
         val deferred = CompletableDeferred<CommandResult>()
         if (awaitResult) pending[command.requestId] = deferred
@@ -212,23 +158,6 @@ class WatchGameRepository @Inject constructor(
         if (!sent) {
             pending.remove(command.requestId)
             setConnected(false)
-            return CommandOutcome.Offline
-        }
-        if (!awaitResult) return CommandOutcome.Ok
-        val result = withTimeoutOrNull(COMMAND_TIMEOUT_MS) { deferred.await() }
-        pending.remove(command.requestId)
-        return when {
-            result == null -> CommandOutcome.Timeout
-            result.ok -> CommandOutcome.Ok
-            else -> CommandOutcome.Rejected(result)
-        }
-    }
-
-    private suspend fun sendViaCloud(command: WireCommand, awaitResult: Boolean): CommandOutcome {
-        val deferred = CompletableDeferred<CommandResult>()
-        if (awaitResult) pending[command.requestId] = deferred
-        if (!cloud.send(command)) {
-            pending.remove(command.requestId)
             return CommandOutcome.Offline
         }
         if (!awaitResult) return CommandOutcome.Ok
