@@ -107,12 +107,55 @@ La IA es un **compañero de aventura, no un vigilante**. Tres reglas de arquitec
 | Modelo en la nube | Configurable como secreto de la función. Propuesta: Claude Haiku para el coach (rápido, cabe en los 8 s) y Claude Sonnet para el diario, el jefe y los límites. |
 | Gemini Nano | Solo existe en algunos teléfonos (no en el emulador). El `AiRouter` lo detecta y, si no está, usa las plantillas: la app se ve igual de completa. |
 
+## Paso 2: estructura de carpetas e interfaces
+
+```
+shared/src/main/java/com/desconecta/hp/shared/ai/        ← Kotlin puro: lo comparten teléfono y reloj
+├── model/AiModels.kt      vocabulario común (mismos valores que los CHECK de Supabase):
+│                          AiFeature · InsightType · Confidence ("Quizá / Probablemente / Casi seguro")
+│                          AiOrigin · UserResponse · AiFeedback · CoachTone · AiSettings · AiInsight
+│                          HpPrediction · CompulsiveSignal · LimitSuggestion · CoachLine
+│                          VoiceIntent (5 intenciones + desconocida) · BattleJournal · BossProposal
+│                          ContextSuggestion
+├── engine/AiEngine.kt     AiResult<T>: los 9 estados (Ready, Learning, Thinking, Failed + respaldo,
+│                          Offline, CloudNotAllowed, Disabled, MissingPermission; baja confianza = Ready)
+│                          AiInput (solo agregados) · interfaces: PredictionService,
+│                          CompulsiveUseDetector, CoachService, VoiceCommandService,
+│                          InsightService, ChallengeService, ContextService
+├── engine/AiRouter.kt     función pura que elige reglas, dispositivo o nube
+└── safety/AiSafety.kt     OutputValidator (80 car., culpa, salud mental, cuerpo, comparaciones,
+                           enlaces) · CoachThrottle (≥ 45 min, nada en descanso ni en Game Over)
+
+mobile/src/main/java/com/desconecta/hp/mobile/ai/        ← implementaciones (fases del paso 7)
+├── rules/                 respaldo siempre disponible: RulesPrediction, TemplateCoach (≥ 15 frases por
+│                          estado y tono), KeywordVoiceParser, RulesInsights, BossCatalogChallenge…
+├── device/                StatisticalPredictor → LiteRtPredictor · GeminiNanoCoach/Voice/Journal
+│                          (ML Kit GenAI) · HabitContextService
+├── cloud/                 EdgeFunctionCoach, EdgeFunctionInsights, EdgeFunctionChallenge (supabase functions)
+├── AiEngineImpl.kt        aplica AiRouter + respaldo + validador + caché/limitador
+├── data/                  Room (ai_insights, ai_settings, voice_commands) + sync con Supabase
+└── di/AiModule.kt         Hilt
+
+wear/src/main/java/com/desconecta/hp/wear/ui/ai/          ← solo interfaz: burbuja del coach, oráculo,
+                                                           voz, pausa berserker, sugerencias, diario,
+                                                           jefe y Tile de IA
+```
+
+### Por qué así
+
+- **Interfaces en `shared` y sin Android:** el `AiRouter` y el validador se prueban con tablas de casos en la JVM
+  (20 pruebas ya escritas). El reloj usa los mismos modelos para mostrar resultados sin ejecutar IA.
+- **`AiResult` con los 9 estados:** el tipo obliga a que cada pantalla diseñe el caso de "aprendiendo",
+  "sin conexión", "nube no autorizada", etc. Si no los cubre, no compila (Nielsen nº 1: visibilidad del estado).
+- **Funciones que nunca van a la nube:** voz, berserker, oráculo y contexto. Son las que tocan datos más
+  personales o necesitan responder en menos de 2 s.
+
 ## Plan unificado (los dos prompts)
 
 | # | Entregable | Origen |
 |---|---|---|
 | 1 | Arquitectura general + arquitectura de IA | Supabase 1 + IA 1 ✅ |
-| 2 | Estructura de carpetas e interfaces de `AiEngine` | IA 2 |
+| 2 | Estructura de carpetas e interfaces de `AiEngine` | IA 2 ✅ |
 | 3 | Migraciones SQL completas (juego + IA), RLS, triggers, RPC, retención y datos seed | Supabase 2–3 + IA 3 |
 | 4 | Tokens visuales de IA | IA 4 |
 | 5 | Capa de datos Kotlin: cliente Supabase con Hilt, Room, repositorios offline-first, SyncWorker, Realtime; se quita el vínculo Wi‑Fi | Supabase 4 |
