@@ -58,6 +58,8 @@ class MainViewModel @Inject constructor(
     val watchConnected: StateFlow<Boolean> = repository.watchConnected
     val authState: StateFlow<com.desconecta.hp.mobile.cloud.AuthState> = auth.state
     val recovery: StateFlow<Boolean> = auth.recovery
+    val linkError: StateFlow<String?> = auth.linkError
+    fun linkErrorShown() = auth.linkErrorShown()
     val syncStatus: StateFlow<com.desconecta.hp.mobile.sync.SyncStatus> = syncQueue.status
     val pendingSync: StateFlow<Int> = syncQueue.pendingCount.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
     val prefs: StateFlow<PhonePrefs?> = store.prefs.stateIn(viewModelScope, SharingStarted.Eagerly, null)

@@ -134,6 +134,13 @@ fun PhoneApp(viewModel: MainViewModel) {
         }
 
         // Enlace de "olvidé mi contraseña" abierto desde el correo → contraseña nueva.
+        val linkError by viewModel.linkError.collectAsStateWithLifecycle()
+        LaunchedEffect(linkError) {
+            linkError?.let {
+                android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
+                viewModel.linkErrorShown()
+            }
+        }
         val recovery by viewModel.recovery.collectAsStateWithLifecycle()
         LaunchedEffect(recovery, loaded) {
             if (recovery && loaded && nav.currentDestination?.route != Routes.ACCOUNT_NEW_PASSWORD) {

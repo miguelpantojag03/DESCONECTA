@@ -9,7 +9,6 @@ import com.desconecta.hp.mobile.di.AUTH_RECOVERY_URL
 import com.desconecta.hp.mobile.di.AUTH_SCHEME
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.SignOutScope
-import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
@@ -24,10 +23,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private const val LINK_EXPIRED =
+    "El enlace caducó o no es de este teléfono. Pide otro."
 
 /** Estado de la cuenta tal como lo muestra la interfaz. */
 sealed interface AuthState {
@@ -141,10 +144,28 @@ class AuthRepository @Inject constructor(
         val uri = intent.data ?: return
         if (uri.scheme != AUTH_SCHEME || uri.host != AUTH_HOST) return
         val isRecovery = uri.path == "/recovery"
-        c.handleDeeplinks(intent) {
-            if (isRecovery) _recovery.value = true
+        // Supabase manda los errores (enlace caducado o ya usado) en la query o en el fragmento.
+        val fragment = uri.fragment.orEmpty().split("&").associate { it.substringBefore("=") to it.substringAfter("=", "") }
+        val serverError = uri.getQueryParameter("error_description") ?: uri.getQueryParameter("error") ?: fragment["error"]
+        val code = uri.getQueryParameter("code")
+        // No se usa handleDeeplinks de la librería: lanza la excepción en su propio hilo y un
+        // enlace caducado o abierto en otro teléfono cerraría la app.
+        scope.launch {
+            if (serverError != null || code == null) {
+                _linkError.value = LINK_EXPIRED
+                return@launch
+            }
+            runCatching { c.auth.exchangeCodeForSession(code) }
+                .onSuccess { if (isRecovery) _recovery.value = true }
+                .onFailure { _linkError.value = LINK_EXPIRED }
         }
     }
+
+    private val _linkError = MutableStateFlow<String?>(null)
+    /** Mensaje si el enlace del correo no sirvió (se muestra una vez). */
+    val linkError: StateFlow<String?> = _linkError
+
+    fun linkErrorShown() { _linkError.value = null }
 
     /** Tras borrar la cuenta en el servidor: la sesión ya no vale, se olvida solo en local. */
     suspend fun forgetSession() {
