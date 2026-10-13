@@ -95,6 +95,9 @@ class GameStore @Inject constructor(@param:ApplicationContext private val contex
         if (consentAt != null) it[Keys.CLOUD_CONSENT] = consentAt
     }
 
+    /** Consentimiento explícito para guardar datos en la nube (pantalla previa a crear cuenta). */
+    suspend fun setCloudConsent(at: Long) = context.dataStore.edit { it[Keys.CLOUD_CONSENT] = at }
+
     /**
      * Cuenta cuyo progreso hay en la caché local (null = progreso de invitado). Si se entra
      * con otra cuenta, el progreso local se descarta en vez de mezclarse.

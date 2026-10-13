@@ -30,7 +30,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.desconecta.hp.mobile.cloud.AuthState
 import com.desconecta.hp.mobile.system.HpPermission
+import com.desconecta.hp.mobile.ui.account.AccountNotice
+import com.desconecta.hp.mobile.ui.account.AccountViewModel
+import com.desconecta.hp.mobile.ui.account.AuthMode
+import com.desconecta.hp.mobile.ui.account.AuthScreen
+import com.desconecta.hp.mobile.ui.account.ConsentScreen
+import com.desconecta.hp.mobile.ui.account.DeleteAccountScreen
+import com.desconecta.hp.mobile.ui.account.NewPasswordScreen
 import com.desconecta.hp.mobile.ui.bestiary.BestiaryScreen
 import com.desconecta.hp.mobile.ui.bestiary.MonsterEditScreen
 import com.desconecta.hp.mobile.ui.components.HpTopBar
@@ -69,6 +78,11 @@ private object Routes {
     const val AVATAR = "avatar"
     const val SETTINGS = "settings"
     const val PERMISSIONS = "permissions"
+    const val ACCOUNT_CONSENT = "account/consent"
+    const val ACCOUNT_AUTH = "account/auth/{mode}"
+    const val ACCOUNT_NEW_PASSWORD = "account/new-password"
+    const val ACCOUNT_DELETE = "account/delete"
+    fun auth(mode: AuthMode) = "account/auth/${mode.name}"
 }
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
@@ -105,6 +119,27 @@ fun PhoneApp(viewModel: MainViewModel) {
         val nav = rememberNavController()
         var draft by remember { mutableStateOf<CharacterDraft?>(null) }
         val grant: (HpPermission) -> Unit = { p -> context.startActivity(viewModel.permissionIntent(p)) }
+        val toast: (String) -> Unit = { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show() }
+        val exportData: () -> Unit = {
+            scope.launch {
+                viewModel.exportData()
+                    .onSuccess { data ->
+                        val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+                            .setType("application/json")
+                            .putExtra(android.content.Intent.EXTRA_TEXT, data)
+                        context.startActivity(android.content.Intent.createChooser(send, "Exportar mis datos de HP"))
+                    }
+                    .onFailure { toast("No se pudo exportar: revisa tu conexión") }
+            }
+        }
+
+        // Enlace de "olvidé mi contraseña" abierto desde el correo → contraseña nueva.
+        val recovery by viewModel.recovery.collectAsStateWithLifecycle()
+        LaunchedEffect(recovery, loaded) {
+            if (recovery && loaded && nav.currentDestination?.route != Routes.ACCOUNT_NEW_PASSWORD) {
+                nav.navigate(Routes.ACCOUNT_NEW_PASSWORD) { launchSingleTop = true }
+            }
+        }
 
         // Decide adónde ir cuando termina de cargar o se reinicia la partida.
         LaunchedEffect(loaded, game == null) {
@@ -137,6 +172,9 @@ fun PhoneApp(viewModel: MainViewModel) {
                     Routes.AVATAR -> HpTopBar("Tu avatar", onBack = { nav.popBackStack() })
                     Routes.SETTINGS -> HpTopBar("Configuración", onBack = { nav.popBackStack() })
                     Routes.PERMISSIONS -> HpTopBar("Permisos", onBack = { nav.popBackStack() })
+                    Routes.ACCOUNT_CONSENT, Routes.ACCOUNT_AUTH -> HpTopBar("Tu cuenta", onBack = { nav.popBackStack() })
+                    Routes.ACCOUNT_DELETE -> HpTopBar("Borrar cuenta", onBack = { nav.popBackStack() })
+                    Routes.ACCOUNT_NEW_PASSWORD -> HpTopBar("Contraseña nueva")
                     else -> Unit
                 }
             },
@@ -276,28 +314,83 @@ fun PhoneApp(viewModel: MainViewModel) {
                                     sync = syncStatus,
                                     pending = pendingSync,
                                     now = now,
-                                    // Las pantallas de cuenta llegan en el paso 6.
-                                    onSignIn = { android.widget.Toast.makeText(context, "Inicio de sesión: disponible en la siguiente versión", android.widget.Toast.LENGTH_SHORT).show() },
+                                    onSignIn = { nav.navigate(Routes.ACCOUNT_CONSENT) },
                                     onSyncNow = viewModel::syncNow,
-                                    onExport = {
-                                        scope.launch {
-                                            viewModel.exportData()
-                                                .onSuccess { data ->
-                                                    val send = android.content.Intent(android.content.Intent.ACTION_SEND)
-                                                        .setType("application/json")
-                                                        .putExtra(android.content.Intent.EXTRA_TEXT, data)
-                                                    context.startActivity(android.content.Intent.createChooser(send, "Exportar mis datos de HP"))
-                                                }
-                                                .onFailure { android.widget.Toast.makeText(context, "No se pudo exportar: revisa tu conexión", android.widget.Toast.LENGTH_SHORT).show() }
-                                        }
-                                    },
+                                    onExport = exportData,
                                     onSignOut = viewModel::signOut,
+                                    onReauth = { nav.navigate(Routes.auth(AuthMode.SIGN_IN)) },
+                                    onDeleteAccount = { nav.navigate(Routes.ACCOUNT_DELETE) },
                                 )
                             },
                         )
                     }
                 }
                 composable(Routes.PERMISSIONS) { PermissionsOnlyScreen(permissions, grant) }
+
+                // --- Cuenta (paso 6) ---------------------------------------------------
+                composable(Routes.ACCOUNT_CONSENT) {
+                    val vm: AccountViewModel = hiltViewModel()
+                    ConsentScreen(
+                        onAccept = {
+                            vm.acceptCloud()
+                            nav.navigate(Routes.auth(AuthMode.SIGN_UP)) { popUpTo(Routes.ACCOUNT_CONSENT) { inclusive = true } }
+                        },
+                        onStayLocal = { vm.stayLocal(); nav.popBackStack() },
+                    )
+                }
+                composable(Routes.ACCOUNT_AUTH) { entry ->
+                    val vm: AccountViewModel = hiltViewModel()
+                    val ui by vm.ui.collectAsStateWithLifecycle()
+                    val mode = runCatching { AuthMode.valueOf(entry.arguments?.getString("mode").orEmpty()) }.getOrDefault(AuthMode.SIGN_IN)
+                    // Con sesión (formulario, Google o enlace del correo) la pantalla se cierra sola.
+                    val signedIn = authState is AuthState.SignedIn
+                    LaunchedEffect(signedIn) {
+                        if (signedIn) {
+                            toast("Sesión iniciada. Tu progreso se guarda en la nube.")
+                            nav.popBackStack()
+                        }
+                    }
+                    AuthScreen(
+                        ui = ui,
+                        initialMode = mode,
+                        googleAvailable = vm.googleAvailable,
+                        onSignIn = { e, p -> vm.signIn(e, p) },
+                        onSignUp = { e, p -> vm.signUp(e, p) },
+                        onGoogle = { vm.google(context) },
+                        onForgot = { vm.sendReset(it) },
+                        onResend = { vm.resendConfirmation(it) },
+                        onBackToForm = { vm.clearMessages() },
+                    )
+                }
+                composable(Routes.ACCOUNT_NEW_PASSWORD) {
+                    val vm: AccountViewModel = hiltViewModel()
+                    val ui by vm.ui.collectAsStateWithLifecycle()
+                    LaunchedEffect(ui.notice) {
+                        if (ui.notice == AccountNotice.Done) {
+                            toast("Contraseña actualizada")
+                            nav.popBackStack()
+                        }
+                    }
+                    NewPasswordScreen(ui, onSave = { vm.updatePassword(it) }, onCancel = { vm.cancelRecovery(); nav.popBackStack() })
+                }
+                composable(Routes.ACCOUNT_DELETE) {
+                    val vm: AccountViewModel = hiltViewModel()
+                    val ui by vm.ui.collectAsStateWithLifecycle()
+                    LaunchedEffect(ui.notice) {
+                        if (ui.notice == AccountNotice.Done) {
+                            toast("Cuenta borrada. Tus datos ya no están en la nube.")
+                            // Si también se borró el teléfono, la navegación general lleva a la bienvenida.
+                            nav.popBackStack()
+                        }
+                    }
+                    DeleteAccountScreen(
+                        ui = ui,
+                        email = (authState as? AuthState.SignedIn)?.email,
+                        onExport = exportData,
+                        onDelete = { vm.deleteAccount(it) },
+                        onCancel = { nav.popBackStack() },
+                    )
+                }
             }
         }
     }

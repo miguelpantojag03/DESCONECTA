@@ -14,6 +14,7 @@ plugins {
 // Credenciales de Supabase: SOLO en local.properties (no se sube a git).
 //   supabase.url=https://xxxx.supabase.co
 //   supabase.key=<anon / publishable key>      ← nunca la service_role
+//   google.webClientId=<ID de cliente WEB de Google Cloud>  (opcional: sin él no se muestra "Continuar con Google")
 val localProps = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
 }
@@ -32,6 +33,7 @@ android {
         versionName = "0.1.0"
         buildConfigField("String", "SUPABASE_URL", "\"${localProp("supabase.url")}\"")
         buildConfigField("String", "SUPABASE_KEY", "\"${localProp("supabase.key")}\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProp("google.webClientId")}\"")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -83,6 +85,9 @@ dependencies {
     implementation(libs.supabase.realtime)
     implementation(libs.supabase.storage)
     implementation(libs.supabase.functions)
+    implementation(libs.credentials)
+    implementation(libs.credentials.play)
+    implementation(libs.googleid)
     implementation(libs.ktor.client.okhttp)
 
     debugImplementation(libs.compose.ui.tooling)

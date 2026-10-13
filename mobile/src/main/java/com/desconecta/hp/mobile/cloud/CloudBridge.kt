@@ -76,6 +76,11 @@ class CloudBridge @Inject constructor(
     private suspend fun onSignedIn(userId: String) {
         val repo = repository.get()
         repo.setSyncIssue(null)
+        // Solo se llega a una sesión pasando por la pantalla de consentimiento (o por el
+        // enlace del correo que se pidió desde ella): ya se puede sincronizar.
+        if (store.currentPrefs().accountMode != com.desconecta.hp.mobile.data.AccountMode.CLOUD) {
+            store.setAccountMode(com.desconecta.hp.mobile.data.AccountMode.CLOUD)
+        }
         runCatching { api.registerDevice("telefono", "${Build.MANUFACTURER} ${Build.MODEL}") }
         if (store.boundUserId() != userId) {
             // Invitado → cuenta, o cambio de cuenta: el progreso local NO se sube ni se mezcla.

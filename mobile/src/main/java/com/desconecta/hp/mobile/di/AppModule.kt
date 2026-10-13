@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.FlowType
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.postgrest.Postgrest
@@ -25,6 +26,11 @@ import javax.inject.Singleton
 class SupabaseGateway(val client: SupabaseClient?) {
     val configured: Boolean get() = client != null
 }
+
+const val AUTH_SCHEME = "hpdesconecta"
+const val AUTH_HOST = "auth"
+/** Enlace del correo de "olvidé mi contraseña": abre la pantalla de contraseña nueva. */
+const val AUTH_RECOVERY_URL = "$AUTH_SCHEME://$AUTH_HOST/recovery"
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -47,7 +53,14 @@ object AppModule {
         if (url.isBlank() || key.isBlank()) return SupabaseGateway(null)
         return SupabaseGateway(
             createSupabaseClient(url, key) {
-                install(Auth)        // sesión persistente y renovación automática del token
+                install(Auth) {
+                    // Sesión persistente y renovación automática del token. Los enlaces de los
+                    // correos (confirmar cuenta, nueva contraseña) vuelven a la app por
+                    // hpdesconecta://auth/… con PKCE: el código solo sirve en este teléfono.
+                    scheme = AUTH_SCHEME
+                    host = AUTH_HOST
+                    flowType = FlowType.PKCE
+                }
                 install(Postgrest)
                 install(Realtime)
                 install(Storage)

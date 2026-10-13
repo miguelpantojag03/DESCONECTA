@@ -3,7 +3,13 @@ package com.desconecta.hp.mobile.cloud
 import com.desconecta.hp.mobile.data.AccountMode
 import com.desconecta.hp.mobile.data.GameStore
 import com.desconecta.hp.mobile.di.SupabaseGateway
+import android.content.Intent
+import com.desconecta.hp.mobile.di.AUTH_HOST
+import com.desconecta.hp.mobile.di.AUTH_RECOVERY_URL
+import com.desconecta.hp.mobile.di.AUTH_SCHEME
 import io.github.jan.supabase.auth.OtpType
+import io.github.jan.supabase.auth.SignOutScope
+import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
@@ -108,9 +114,43 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    /** El enlace del correo vuelve a la app ([AUTH_RECOVERY_URL]) y abre "Contraseña nueva". */
     suspend fun sendPasswordReset(email: String): Result<Unit> = runCatching {
         val c = client ?: error("La nube no está configurada")
-        c.auth.resetPasswordForEmail(email.trim())
+        c.auth.resetPasswordForEmail(email.trim(), redirectUrl = AUTH_RECOVERY_URL)
+    }
+
+    suspend fun updatePassword(newPassword: String): Result<Unit> = runCatching {
+        val c = client ?: error("La nube no está configurada")
+        c.auth.updateUser { password = newPassword }
+        Unit
+    }
+
+    private val _recovery = MutableStateFlow(false)
+    /** true = se abrió el enlace de "olvidé mi contraseña": hay que pedir la nueva. */
+    val recovery: StateFlow<Boolean> = _recovery
+
+    fun recoveryHandled() { _recovery.value = false }
+
+    /**
+     * Enlaces hpdesconecta://auth/… de los correos. Confirmar la cuenta inicia sesión sola;
+     * el de recuperación además abre la pantalla de contraseña nueva.
+     */
+    fun handleDeeplink(intent: Intent) {
+        val c = client ?: return
+        val uri = intent.data ?: return
+        if (uri.scheme != AUTH_SCHEME || uri.host != AUTH_HOST) return
+        val isRecovery = uri.path == "/recovery"
+        c.handleDeeplinks(intent) {
+            if (isRecovery) _recovery.value = true
+        }
+    }
+
+    /** Tras borrar la cuenta en el servidor: la sesión ya no vale, se olvida solo en local. */
+    suspend fun forgetSession() {
+        runCatching { client?.auth?.signOut(SignOutScope.LOCAL) }
+        runCatching { client?.auth?.clearSession() }
+        store.setAccountMode(AccountMode.LOCAL_ONLY)
     }
 
     suspend fun resendConfirmation(email: String): Result<Unit> = runCatching {

@@ -7,6 +7,19 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import com.desconecta.hp.mobile.data.PhonePrefs
 import com.desconecta.hp.mobile.system.HpPermission
 import com.desconecta.hp.mobile.ui.AppsState
+import com.desconecta.hp.mobile.cloud.AuthState
+import com.desconecta.hp.mobile.sync.SyncStatus
+import com.desconecta.hp.mobile.ui.account.AccountNotice
+import com.desconecta.hp.mobile.ui.account.AccountUiState
+import com.desconecta.hp.mobile.ui.account.AuthMode
+import com.desconecta.hp.mobile.ui.account.AuthScreen
+import com.desconecta.hp.mobile.ui.account.ConsentScreen
+import com.desconecta.hp.mobile.ui.account.DeleteAccountScreen
+import com.desconecta.hp.mobile.ui.account.NewPasswordScreen
+import com.desconecta.hp.mobile.ui.settings.AccountSection
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.ui.unit.dp
 import com.desconecta.hp.mobile.ui.bestiary.BestiaryScreen
 import com.desconecta.hp.mobile.ui.bestiary.MonsterEditScreen
 import com.desconecta.hp.mobile.ui.block.MonsterDefeatedScreen
@@ -96,4 +109,29 @@ class PhoneScreenshots {
 
     @Config(qualifiers = "w411dp-h1600dp-xxhdpi")
     @Test fun ia_tokens() = shot("18_ia_tokens") { com.desconecta.hp.shared.designsystem.component.ai.AiDesignSheet() }
+
+    // --- Cuenta (paso 6) -----------------------------------------------------------------
+    @Config(qualifiers = "w411dp-h1100dp-xxhdpi")
+    @Test fun cuenta_consentimiento() = shot("19_cuenta_consentimiento") { ConsentScreen({}, {}) }
+    @Test fun cuenta_crear() = shot("20_cuenta_crear") {
+        AuthScreen(AccountUiState(), AuthMode.SIGN_UP, googleAvailable = true, { _, _ -> }, { _, _ -> }, {}, {}, {}, {})
+    }
+    @Test fun cuenta_entrar_error() = shot("21_cuenta_entrar_error") {
+        AuthScreen(AccountUiState(error = "Correo o contraseña incorrectos."), AuthMode.SIGN_IN, googleAvailable = false, { _, _ -> }, { _, _ -> }, {}, {}, {}, {})
+    }
+    @Test fun cuenta_revisa_correo() = shot("22_cuenta_revisa_correo") {
+        AuthScreen(AccountUiState(notice = AccountNotice.CheckEmail("ana@correo.com")), AuthMode.SIGN_UP, false, { _, _ -> }, { _, _ -> }, {}, {}, {}, {})
+    }
+    @Test fun cuenta_contrasena_nueva() = shot("23_cuenta_contrasena_nueva") { NewPasswordScreen(AccountUiState(), {}, {}) }
+    @Config(qualifiers = "w411dp-h1000dp-xxhdpi")
+    @Test fun cuenta_borrar() = shot("24_cuenta_borrar") { DeleteAccountScreen(AccountUiState(), "ana@correo.com", {}, {}, {}) }
+    @Test fun ajustes_cuenta() = shot("25_ajustes_cuenta") {
+        androidx.compose.foundation.layout.Column(
+            androidx.compose.ui.Modifier.background(com.desconecta.hp.shared.designsystem.theme.Hp.colors.background).padding(16.dp),
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+        ) {
+            AccountSection(AuthState.LocalOnly, SyncStatus(), 0, now, {}, {}, {}, {}, {}, {})
+            AccountSection(AuthState.SignedIn("u", "ana@correo.com", true), SyncStatus(lastSyncAt = now - 120_000), 0, now, {}, {}, {}, {}, {}, {})
+        }
+    }
 }

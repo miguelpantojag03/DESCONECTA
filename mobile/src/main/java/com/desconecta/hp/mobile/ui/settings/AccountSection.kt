@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,10 +48,11 @@ fun AccountSection(
     onSyncNow: () -> Unit,
     onExport: () -> Unit,
     onSignOut: () -> Unit,
+    onReauth: () -> Unit,
+    onDeleteAccount: () -> Unit,
 ) {
     val c = Hp.colors
     var confirmSignOut by remember { mutableStateOf(false) }
-    var confirmSignIn by remember { mutableStateOf(false) }
     HpCard {
         when (auth) {
             AuthState.Unconfigured -> InfoRow(
@@ -63,11 +65,11 @@ fun AccountSection(
                     PixelIcons.Lock, c.textSecondary, "Solo en este dispositivo",
                     "Tus datos no salen del teléfono. Crea una cuenta para tener copia en la nube.",
                 )
-                PrimaryButton("Crear cuenta o iniciar sesión", onClick = { confirmSignIn = true })
+                PrimaryButton("Crear cuenta o iniciar sesión", onClick = onSignIn)
             }
             is AuthState.Expired -> {
                 InfoRow(PixelIcons.HeartCracked, c.hpHurt, "Tu sesión caducó", "El juego sigue funcionando; los cambios se guardan y se subirán al volver a entrar.")
-                PrimaryButton("Volver a iniciar sesión", onClick = onSignIn, container = c.hpHurt)
+                PrimaryButton("Volver a iniciar sesión", onClick = onReauth, container = c.hpHurt)
             }
             is AuthState.SignedIn -> {
                 InfoRow(PixelIcons.Star, c.hpHealthy, auth.email ?: "Cuenta conectada", syncLine(sync, pending, now))
@@ -76,26 +78,12 @@ fun AccountSection(
                     SecondaryButton("Exportar mis datos", onClick = onExport, modifier = Modifier.weight(1f))
                 }
                 SecondaryButton("Cerrar sesión", onClick = { confirmSignOut = true }, icon = PixelIcons.Lock, iconTint = c.textSecondary)
+                // Acción destructiva: separada, en rojo y como texto (menos peso que las demás).
+                TextButton(onClick = onDeleteAccount, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Borrar mi cuenta", color = c.hpCritical, style = Hp.type.label)
+                }
             }
         }
-    }
-    // Prevención de errores (Nielsen nº 5): el progreso sin cuenta no pasa a la cuenta; se
-    // avisa ANTES, con lo que se pierde y lo que se conserva, no después.
-    if (confirmSignIn) {
-        AlertDialog(
-            onDismissRequest = { confirmSignIn = false },
-            title = { Text("Tu progreso sin cuenta no se pasa") },
-            text = {
-                Text(
-                    "Al entrar empezarás con el progreso de la cuenta: el nivel, la XP, la racha, " +
-                        "los logros y los objetos de este teléfono se borran. Tus monstruos, límites y " +
-                        "la vida de hoy se mantienen.",
-                )
-            },
-            confirmButton = { TextButton(onClick = { confirmSignIn = false; onSignIn() }) { Text("Entendido, continuar") } },
-            dismissButton = { TextButton(onClick = { confirmSignIn = false }) { Text("Seguir sin cuenta") } },
-            containerColor = c.surfaceElevated,
-        )
     }
     if (confirmSignOut) {
         AlertDialog(

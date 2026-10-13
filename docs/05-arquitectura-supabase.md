@@ -118,3 +118,19 @@ UsageStatsManager, el bloqueo por accesibilidad y Device Admin, y el protocolo r
 - `cloud/CloudBridge`: Realtime en 5 tablas (debounce 800 ms), aviso al reloj si caduca la sesión, adopción de cuenta.
 - Uso agregado por hora (`hourly_usage` → `app_usage`, migración 006).
 - Prueba de integración contra el proyecto real: `-Dhp.integration=true` (crea y borra un usuario temporal).
+
+## Entregable 6: pantallas de cuenta, consentimiento, exportar y borrar (hecho)
+
+| Pantalla | Qué hace | Justificación |
+|---|---|---|
+| Consentimiento (`19`) | Qué sube a la nube, qué no sale nunca, que se puede exportar/borrar y que el progreso de invitado no se pasa. "Seguir solo en este dispositivo" con el mismo peso que aceptar. | Consentimiento informado; Nielsen nº 1 y nº 5; sin patrones oscuros. |
+| Crear cuenta / iniciar sesión (`20`, `21`) | Un selector de modo, 2 campos, Google arriba si está configurado, requisitos de contraseña en vivo, errores junto al campo y en palabras, autocompletado del gestor de contraseñas. | Hick (2 campos, 1 decisión), Nielsen nº 9, WCAG 3.3.1/3.3.3 (errores identificados y con sugerencia), 1.3.5 (propósito del campo). |
+| Revisa tu correo (`22`) | Tras crear la cuenta si Supabase pide confirmar el correo; reenviar; el enlace vuelve a la app con la sesión iniciada. | Visibilidad del estado; sin callejones sin salida. |
+| Contraseña nueva (`23`) | Se abre sola con el enlace de "olvidé mi contraseña". Un solo campo con "mostrar". | Menos carga que repetir la contraseña. |
+| Borrar cuenta (`24`) | Qué se borra, exportar antes, opción de borrar también el teléfono, escribir BORRAR. En rojo (crítico), separado de las demás acciones. | Fricción proporcional al riesgo; Nielsen nº 5. |
+
+- Enlaces de los correos: `hpdesconecta://auth/…` con PKCE (el código solo sirve en el teléfono que lo pidió).
+  **En Supabase → Authentication → URL Configuration → Redirect URLs hay que añadir `hpdesconecta://auth/**`.**
+- Google: Credential Manager con nonce. Requiere `google.webClientId` en `local.properties` y el proveedor Google
+  activado en Supabase con ese mismo ID; sin él, el botón no aparece.
+- Los errores nunca revelan si un correo tiene cuenta ("correo o contraseña incorrectos").
