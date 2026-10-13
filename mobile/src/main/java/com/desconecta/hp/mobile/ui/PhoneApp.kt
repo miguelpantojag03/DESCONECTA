@@ -83,6 +83,8 @@ fun PhoneApp(viewModel: MainViewModel) {
     val watchConnected by viewModel.watchConnected.collectAsStateWithLifecycle()
     val history by viewModel.history.collectAsStateWithLifecycle()
     val apps by viewModel.apps.collectAsStateWithLifecycle()
+    val cloudStatus by viewModel.cloudStatus.collectAsStateWithLifecycle()
+    val linkCode by viewModel.linkCode.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
@@ -175,7 +177,8 @@ fun PhoneApp(viewModel: MainViewModel) {
                         HomeScreen(
                             game = g,
                             history = history,
-                            watchConnected = watchConnected,
+                            // Conectado por Bluetooth o, en los últimos 2,5 min, por Wi‑Fi (Supabase).
+                            watchConnected = watchConnected || (cloudStatus.watchSeenAt > 0 && now - cloudStatus.watchSeenAt < 150_000),
                             missingPermissions = listOf(HpPermission.USAGE, HpPermission.ACCESSIBILITY, HpPermission.OVERLAY).count { permissions[it] != true },
                             now = now,
                             onOpenPermissions = { nav.navigate(Routes.PERMISSIONS) },
@@ -260,6 +263,16 @@ fun PhoneApp(viewModel: MainViewModel) {
                             onOpenAllies = { nav.navigate(Routes.ALLIES) },
                             onOpenPermissions = { nav.navigate(Routes.PERMISSIONS) },
                             onReset = viewModel::resetGame,
+                            cloudSection = {
+                                com.desconecta.hp.mobile.ui.settings.CloudSection(
+                                    status = cloudStatus,
+                                    linkCode = linkCode,
+                                    now = now,
+                                    onCreateCode = viewModel::createLinkCode,
+                                    onDismissCode = viewModel::dismissLinkCode,
+                                    onUnlink = viewModel::unlinkCloudWatches,
+                                )
+                            },
                         )
                     }
                 }

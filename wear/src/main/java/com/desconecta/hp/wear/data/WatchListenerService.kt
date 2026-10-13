@@ -6,9 +6,6 @@ import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUp
 import com.desconecta.hp.shared.datalayer.DataLayerPaths
 import com.desconecta.hp.shared.datalayer.WireCodec
 import com.desconecta.hp.shared.datalayer.WireEvent
-import com.desconecta.hp.shared.designsystem.haptics.HpHapticEvent
-import com.desconecta.hp.shared.designsystem.haptics.HpHapticPlayer
-import com.desconecta.hp.shared.model.HpWarning
 import com.desconecta.hp.wear.complication.HpComplicationService
 import com.desconecta.hp.wear.complication.StreakComplicationService
 import com.desconecta.hp.wear.tile.HpTileService
@@ -32,9 +29,7 @@ import javax.inject.Inject
 class WatchListenerService : WearableListenerService() {
 
     @Inject lateinit var repository: WatchGameRepository
-    @Inject lateinit var notifier: WatchNotifier
-
-    private val haptics by lazy { HpHapticPlayer(applicationContext) }
+    @Inject lateinit var feedback: WatchFeedback
 
     override fun onDataChanged(events: DataEventBuffer) {
         events.forEach { event ->
@@ -64,23 +59,8 @@ class WatchListenerService : WearableListenerService() {
     }
 
     private fun handleEvent(event: WireEvent) {
-        val settings = repository.snapshot.value.game?.settings
-        haptics.enabled = settings?.haptics ?: true
-        haptics.play(
-            when (event) {
-                is WireEvent.Warning -> when (event.warning) {
-                    HpWarning.HALF, HpWarning.LOW -> HpHapticEvent.WARNING
-                    HpWarning.VERY_LOW, HpWarning.LAST_FIVE -> HpHapticEvent.WARNING_URGENT
-                }
-                is WireEvent.MonsterDefeated -> HpHapticEvent.MONSTER_DEFEATED
-                WireEvent.GameOver -> HpHapticEvent.GAME_OVER
-                is WireEvent.LevelUp, is WireEvent.Achievement -> HpHapticEvent.CELEBRATION
-                is WireEvent.Healed -> HpHapticEvent.HEAL
-                is WireEvent.Respawn, is WireEvent.OpenPotion -> HpHapticEvent.CONFIRM
-            },
-        )
+        feedback.play(event, repository.snapshot.value.game?.settings?.haptics ?: true)
         repository.onEvent(event)
-        notifier.notifyIfInBackground(event)
     }
 
     private fun refreshSurfaces() {

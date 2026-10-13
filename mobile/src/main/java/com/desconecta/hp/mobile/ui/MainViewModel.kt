@@ -32,6 +32,14 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** Código para vincular un reloj por Wi‑Fi. */
+sealed interface LinkCodeState {
+    data object Idle : LinkCodeState
+    data object Loading : LinkCodeState
+    data class Ready(val code: String, val expiresAt: Long) : LinkCodeState
+    data class Error(val message: String) : LinkCodeState
+}
+
 /** Carga de la lista de apps instaladas (con estados de carga / error). */
 sealed interface AppsState {
     data object Loading : AppsState
@@ -53,6 +61,10 @@ class MainViewModel @Inject constructor(
     val game: StateFlow<GameState?> = repository.state
     val loaded: StateFlow<Boolean> = repository.loaded
     val watchConnected: StateFlow<Boolean> = repository.watchConnected
+    val cloudStatus: StateFlow<com.desconecta.hp.mobile.data.CloudStatus> = repository.cloudStatus
+
+    private val _linkCode = MutableStateFlow<LinkCodeState>(LinkCodeState.Idle)
+    val linkCode: StateFlow<LinkCodeState> = _linkCode.asStateFlow()
     val prefs: StateFlow<PhonePrefs?> = store.prefs.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val history: StateFlow<List<DaySummary>?> = db.history().recent()
@@ -140,4 +152,16 @@ class MainViewModel @Inject constructor(
     fun setStudyMode(minutes: Int) = viewModelScope.launch { repository.setStudyMode(minutes) }
 
     fun resetGame() = viewModelScope.launch { repository.reset() }
+
+    fun createLinkCode() = viewModelScope.launch {
+        _linkCode.value = LinkCodeState.Loading
+        _linkCode.value = repository.createWatchLinkCode().fold(
+            onSuccess = { LinkCodeState.Ready(it, System.currentTimeMillis() + 10 * 60_000L) },
+            onFailure = { LinkCodeState.Error(it.message ?: "No se pudo generar el código") },
+        )
+    }
+
+    fun dismissLinkCode() { _linkCode.value = LinkCodeState.Idle }
+
+    fun unlinkCloudWatches() = viewModelScope.launch { repository.unlinkCloudWatches() }
 }

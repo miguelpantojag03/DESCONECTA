@@ -65,6 +65,7 @@ fun SettingsScreen(
     onOpenAllies: () -> Unit,
     onOpenPermissions: () -> Unit,
     onReset: () -> Unit,
+    cloudSection: @Composable () -> Unit = {},
 ) {
     val c = Hp.colors
     val s = game.settings
@@ -102,6 +103,9 @@ fun SettingsScreen(
             InfoRow(PixelIcons.Heart, c.hpHealthy, "Apps aliadas", "${game.allies.size} apps que no hacen daño (Maps, banco, trabajo…)")
             SecondaryButton("Gestionar aliadas", onClick = onOpenAllies)
         }
+
+        SectionLabel("Nube y reloj")
+        cloudSection()
 
         SectionLabel("Seguridad")
         HpCard {

@@ -92,6 +92,22 @@ class WatchViewModel @Inject constructor(
 
     fun startDemo() = repository.startDemo()
 
+    val cloudAvailable: Boolean get() = repository.cloudAvailable
+    val cloudLinked: Boolean get() = repository.cloudLinked
+
+    /** Canjea el código del teléfono para sincronizar por Wi‑Fi (Supabase). */
+    fun linkWithCode(code: String) {
+        if (_action.value == ActionState.Sending) return
+        _action.value = ActionState.Sending
+        viewModelScope.launch {
+            val result = repository.linkWithCode(code)
+            _action.value = if (result.isSuccess) ActionState.Success("¡Reloj vinculado por Wi‑Fi!")
+            else ActionState.Failure(result.exceptionOrNull()?.message ?: "No se pudo vincular", retryable = true)
+        }
+    }
+
+    fun unlinkCloud() = viewModelScope.launch { repository.unlinkCloud() }
+
     fun usePotion(wakeMonster: String? = null) = run(
         WireCommand.UsePotion(WatchGameRepository.newRequestId(), wakeMonster),
         if (wakeMonster == null) "¡Poción usada! +10 HP" else "¡Poción usada! App despierta 10 min",

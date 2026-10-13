@@ -2,4 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Lo usa HpHapticPlayer; se fusiona en ambas apps. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Supabase: respaldo en la nube y sync del reloj por Wi‑Fi. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 </manifest>

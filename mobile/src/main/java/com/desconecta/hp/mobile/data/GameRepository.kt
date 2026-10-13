@@ -49,6 +49,7 @@ class GameRepository @Inject constructor(
     private val sync: PhoneSync,
     private val locker: DeviceLocker,
     private val chipTune: ChipTune,
+    private val cloud: CloudSync,
 ) {
     private val engine = GameEngine()
     private val mutex = Mutex()
@@ -65,14 +66,19 @@ class GameRepository @Inject constructor(
     val events: SharedFlow<GameEvent> = _events
 
     val watchConnected: StateFlow<Boolean> = sync.watchConnected
+    val cloudStatus: StateFlow<CloudStatus> = cloud.status
 
     init {
+        cloud.commandHandler = ::execute
         scope.launch {
             _state.value = store.loadState()
             _loaded.value = true
             ensureToday()
             sync.refreshConnection()
-            _state.value?.let { sync.publishState(it) }
+            _state.value?.let {
+                sync.publishState(it)
+                cloud.publishState(it)
+            }
         }
     }
 
@@ -93,25 +99,33 @@ class GameRepository @Inject constructor(
         _state.value = state
         store.saveState(state)
         sync.publishState(state)
+        cloud.publishState(state)
     }
 
     private suspend fun handle(event: GameEvent, state: GameState, previous: GameState) {
         _events.emit(event)
-        event.toWire(state)?.let { sync.sendEvent(it) }
+        event.toWire(state)?.let {
+            sync.sendEvent(it)
+            cloud.sendEvent(it)
+        }
         when (event) {
             GameEvent.GameOver -> locker.lockNow()
-            is GameEvent.AchievementUnlocked ->
-                db.achievements().insert(AchievementRecord(event.id.name, state.unlockedAchievements[event.id] ?: System.currentTimeMillis()))
-            is GameEvent.Respawn -> db.history().upsert(
-                DayRecord(
-                    dayKey = event.summary.dayKey,
-                    maxHp = event.summary.maxHp,
-                    hpLeft = event.summary.hpLeft,
-                    gameOver = event.summary.gameOver,
-                    xpEarned = event.summary.xpEarned,
-                    usageByApp = previous.monsters.joinToString(";") { "${it.packageName}=${it.usedMinutes}" },
-                ),
-            )
+            is GameEvent.AchievementUnlocked -> {
+                val at = state.unlockedAchievements[event.id] ?: System.currentTimeMillis()
+                db.achievements().insert(AchievementRecord(event.id.name, at))
+                cloud.pushAchievement(event.id.name, at)
+            }
+            is GameEvent.Respawn -> DayRecord(
+                dayKey = event.summary.dayKey,
+                maxHp = event.summary.maxHp,
+                hpLeft = event.summary.hpLeft,
+                gameOver = event.summary.gameOver,
+                xpEarned = event.summary.xpEarned,
+                usageByApp = previous.monsters.joinToString(";") { "${it.packageName}=${it.usedMinutes}" },
+            ).let { record ->
+                db.history().upsert(record)
+                cloud.pushHistory(record)
+            }
             else -> Unit
         }
         if (state.settings.sound) chipTune.play(event)
@@ -207,9 +221,16 @@ class GameRepository @Inject constructor(
 
     suspend fun handleCommand(command: WireCommand, fromNode: String) {
         sync.setConnected(true)
-        val result: CommandResult = when (command) {
+        sync.sendResult(fromNode, execute(command))
+    }
+
+    /** Ejecuta un comando del reloj, venga por la Data Layer o por la nube. */
+    suspend fun execute(command: WireCommand): CommandResult = when (command) {
             is WireCommand.RequestSync -> {
-                _state.value?.let { sync.publishState(it) }
+                _state.value?.let {
+                    sync.publishState(it)
+                    cloud.publishState(it)
+                }
                 CommandResult(command.requestId, ok = true)
             }
             is WireCommand.UsePotion -> outcomeResult(command.requestId, mutate { engine.usePotion(it, command.wakeMonster) })
@@ -219,8 +240,6 @@ class GameRepository @Inject constructor(
                 if (!store.checkPin(command.pin)) CommandResult(command.requestId, ok = false, wrongPin = true)
                 else outcomeResult(command.requestId, mutate { engine.revive(it) })
         }
-        sync.sendResult(fromNode, result)
-    }
 
     private fun outcomeResult(requestId: String, outcome: Outcome?) = when {
         outcome == null -> CommandResult(requestId, ok = false)
@@ -236,6 +255,13 @@ class GameRepository @Inject constructor(
     }
 
     suspend fun refreshWatchConnection() = sync.refreshConnection()
+
+    suspend fun createWatchLinkCode(): Result<String> {
+        val s = _state.value ?: return Result.failure(IllegalStateException("Crea tu partida primero"))
+        return cloud.createLinkCode(s)
+    }
+
+    suspend fun unlinkCloudWatches() = cloud.unlinkWatches()
 
     /** Borra la partida (Configuración → "Empezar de nuevo"). */
     suspend fun reset() = mutex.withLock {

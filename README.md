@@ -20,6 +20,7 @@ con su propio límite; el reloj es el mando.
 1. [Sistema de diseño](docs/01-sistema-de-diseno.md): color con contraste medido, tipografía, forma, movimiento, haptics.
 2. [Componente HealthBar](docs/02-health-bar.md): variantes, animaciones y su justificación.
 3. [Pantallas y flujos](docs/03-pantallas.md): decisiones por pantalla y principios de usabilidad.
+4. [Nube con Supabase](docs/04-supabase.md): respaldo y sincronización del reloj por Wi‑Fi.
 
 ## Compilar y probar
 
