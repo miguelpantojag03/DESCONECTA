@@ -179,11 +179,11 @@ Capturas: `docs/screenshots/phone/18_ia_tokens.png` y `docs/screenshots/wear/24�
 | 2 | Estructura de carpetas e interfaces de `AiEngine` | IA 2 ✅ |
 | 3 | Migraciones SQL completas (juego + IA), RLS, triggers, RPC, retención y datos seed | Supabase 2–3 + IA 3 ✅ |
 | 4 | Tokens visuales de IA | IA 4 ✅ |
-| 5 | Capa de datos Kotlin: cliente Supabase con Hilt, Room, repositorios offline-first, SyncWorker, Realtime; se quita el vínculo Wi‑Fi | Supabase 4 |
-| 6 | Pantallas de autenticación + consentimiento + exportar y borrar cuenta | Supabase 5 + 10 |
-| 7 | Funciones de IA por fases: Oráculo → coach → voz → berserker → diario → jefes → límites → contexto (con pantallas, previews de los 9 estados y justificación) | IA 5, 7, 8 |
-| 8 | Edge Functions con prompts de sistema, validación JSON y respaldo | Supabase 6 + IA 6 |
-| 9 | Pruebas: RLS, validador del coach, respaldo de la IA, modo sin conexión | Supabase 7 + IA 9 |
+| 5 | Capa de datos Kotlin: cliente Supabase con Hilt, Room, repositorios offline-first, SyncWorker, Realtime; se quita el vínculo Wi‑Fi | Supabase 4 ✅ |
+| 6 | Pantallas de autenticación + consentimiento + exportar y borrar cuenta | Supabase 5 + 10 ✅ |
+| 7 | Funciones de IA por fases (versión simple: ajustes, coach, límites, Oráculo, berserker, diario, reloj; sin voz ni contexto) | IA 5, 7, 8 ✅ |
+| 8 | Edge Functions con prompts de sistema, validación JSON y respaldo | Supabase 6 + IA 6 — **descartado** (trabajo futuro) |
+| 9 | Pruebas: RLS, validador del coach, respaldo de la IA, modo sin conexión | Supabase 7 + IA 9 ✅ |
 
 ## Paso 7 · Fase 1: ajustes de la IA (hecho)
 

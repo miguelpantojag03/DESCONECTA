@@ -103,7 +103,11 @@ class PhoneScreenshots {
     @Test fun historial_vacio() = shot("14_historial_vacio") { HistoryScreen(emptyList(), 0) }
     @Test fun avatar() = shot("15_avatar") { AvatarScreen(game.player, {}, {}) }
     @Test fun ajustes() = shot("16_configuracion") {
-        SettingsScreen(game, PhonePrefs(true, 120, 30, true), allGranted, { _, _ -> }, {}, {}, {}, {}, {})
+        SettingsScreen(
+            game, PhonePrefs(true, 120, 30, true), allGranted, { _, _ -> }, {}, {}, {}, {}, {},
+            cloudSection = { AccountSection(AuthState.SignedIn("u", "ana@correo.com", true), SyncStatus(lastSyncAt = now - 120_000), 0, now, {}, {}, {}, {}, {}, {}) },
+            aiSection = { com.desconecta.hp.mobile.ui.ai.AiSettingsSummary(com.desconecta.hp.shared.ai.model.AiSettings()) {} },
+        )
     }
     @Test fun catalogo() = shot("17_sistema_de_diseno") { DesignSystemCatalog() }
 
