@@ -270,7 +270,8 @@ class RemoteGameApi @Inject constructor(private val gateway: SupabaseGateway) {
                         appLabel = label.take(60),
                         name = (monster?.name ?: label).take(28),
                         art = (monster?.art ?: MonsterArt.FANTASMA).catalogId(),
-                        limitMinutes = monster?.limitMinutes ?: 30,
+                        // Mismo CHECK que el servidor (pasos de 5, 5–600): un valor raro no debe tumbar toda la lista.
+                        limitMinutes = ((monster?.limitMinutes ?: 30) / 5 * 5).coerceIn(5, 600),
                         ally = monster == null,
                     ),
                 )

@@ -61,8 +61,16 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         val usage = deps.db().usage()
         val dirty = usage.dirty()
         if (dirty.isEmpty()) return
-        deps.api().upsertUsage(dirty)
-        dirty.forEach { usage.markClean(it.dayKey, it.hour, it.packageName, it.minutes) }
+        // Por días: si el servidor rechaza uno (p. ej. ya cerrado), se descarta ese día y no
+        // se bloquea toda la sincronización reintentando para siempre.
+        dirty.groupBy { it.dayKey }.forEach { (_, rows) ->
+            try {
+                deps.api().upsertUsage(rows)
+            } catch (e: RestException) {
+                if (!isPermanent(e)) throw e
+            }
+            rows.forEach { usage.markClean(it.dayKey, it.hour, it.packageName, it.minutes) }
+        }
     }
 
     private suspend fun processQueue(deps: Deps) {
@@ -81,7 +89,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                     execute(op, api)
                     dao.delete(entity.id)
                 } catch (e: RestException) {
-                    if (e.statusCode in 400..499 && e.statusCode != 401 && e.statusCode != 408 && e.statusCode != 429) {
+                    if (isPermanent(e)) {
                         // Permanente: el servidor rechazó el dato (trampa, día cerrado…).
                         dao.markFailed(entity.id, e.message.orEmpty().take(200))
                         dao.delete(entity.id)
@@ -125,6 +133,10 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             }
         }
     }
+
+    /** 4xx de validación (RLS, CHECK, día cerrado): reintentar no lo arregla. 401/408/429 sí. */
+    private fun isPermanent(e: RestException) =
+        e.statusCode in 400..499 && e.statusCode != 401 && e.statusCode != 408 && e.statusCode != 429
 
     private fun humanError(e: Exception): String = when (e) {
         is RestException -> if (e.statusCode == 401) "La sesión caducó: vuelve a iniciar sesión" else "El servidor rechazó un cambio"

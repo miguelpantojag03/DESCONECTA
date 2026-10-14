@@ -138,6 +138,9 @@ class SyncQueue @Inject constructor(
     /** Usos de objeto aún sin subir (para no "devolver" una poción ya gastada al fusionar). */
     suspend fun pendingItemUses(type: String): Int = db.sync().countMatching("UseItem", "\"type\":\"$type\"")
 
+    /** Hay un cierre de día sin subir: la XP y la racha del servidor aún no lo incluyen. */
+    suspend fun hasPendingCloseDay(): Boolean = db.sync().countMatching("CloseDay", "") > 0
+
     /** Hay cambios de ajustes de IA sin subir (entonces no se pisan con lo del servidor). */
     suspend fun hasPendingAiSettings(): Boolean = db.sync().byKey("ai_settings") != null
 

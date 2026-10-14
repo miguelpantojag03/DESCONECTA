@@ -9,6 +9,7 @@
 | `migrations/005_storage_realtime.sql` | Buckets `avatars` y `game-assets`, publicación Realtime y retención de 30 días (pg_cron). |
 | `deploy/hp_schema_v2.sql` | 002–005 en un solo archivo para pegar en el SQL Editor. |
 | `migrations/006_usage_upsert.sql` | Permite el upsert de `app_usage` y bloquea modificar el uso de un día ya cerrado (anti-trampas). Pegar después de v2. |
+| `migrations/007_usage_monster_link.sql` | Vincula cada minuto de uso con su monstruo en el servidor (jefe semanal y logro de Scrollzilla). Pegar después de 006. |
 | `tests/` | Pruebas de RLS y reglas en un PostgreSQL local que imita a Supabase (`00_supabase_stub.sql`). |
 
 ## Probar en local

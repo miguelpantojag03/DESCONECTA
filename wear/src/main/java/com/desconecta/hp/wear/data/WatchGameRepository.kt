@@ -141,10 +141,14 @@ class WatchGameRepository @Inject constructor(
 
     suspend fun send(command: WireCommand, awaitResult: Boolean = true): CommandOutcome {
         if (_snapshot.value.demo) return demoCommand(command)
+        // Con límite de tiempo: sin teléfono emparejado los servicios de Google pueden tardar
+        // mucho en responder y el botón se quedaría "enviando" sin explicación.
         val node = runCatching {
-            capabilityClient
-                .getCapability(DataLayerPaths.CAPABILITY_PHONE, CapabilityClient.FILTER_REACHABLE)
-                .await().nodes.minByOrNull { if (it.isNearby) 0 else 1 }
+            withTimeoutOrNull(LOAD_TIMEOUT_MS) {
+                capabilityClient
+                    .getCapability(DataLayerPaths.CAPABILITY_PHONE, CapabilityClient.FILTER_REACHABLE)
+                    .await().nodes.minByOrNull { if (it.isNearby) 0 else 1 }
+            }
         }.getOrNull()
         if (node == null) {
             setConnected(false)
@@ -232,7 +236,8 @@ class WatchGameRepository @Inject constructor(
         const val DEMO_PIN = "1234"
         private const val DEMO_TICK_MS = 6_000L
         private const val LOAD_TIMEOUT_MS = 3_000L
-        private const val COMMAND_TIMEOUT_MS = 6_000L
+        /** Revivir con cuenta valida en el servidor: hace falta margen para la red. */
+        private const val COMMAND_TIMEOUT_MS = 10_000L
         fun newRequestId(): String = UUID.randomUUID().toString()
     }
 }

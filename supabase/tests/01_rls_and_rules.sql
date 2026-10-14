@@ -170,6 +170,17 @@ exception when check_violation then
   raise notice 'OK 12b · el uso de un día cerrado no se puede tocar';
 end $$;
 
+-- El uso se vincula solo con su monstruo (el teléfono solo manda el paquete).
+insert into public.app_usage (package_name, fecha, hora, minutos) values ('com.zhiliaoapp.musically', '2026-10-14', 10, 7);
+do $$ begin
+  assert (select u.monster_id from public.app_usage u where u.fecha = '2026-10-14' and u.hora = 10)
+       = (select m.id from public.monsters m where m.package_name = 'com.zhiliaoapp.musically'),
+         'FALLO: el uso no quedó vinculado a su monstruo';
+  assert not exists (select 1 from public.app_usage u where u.package_name = 'com.zhiliaoapp.musically' and u.monster_id is null),
+         'FALLO: quedó uso de un monstruo sin vincular';
+  raise notice 'OK 12c · el servidor vincula cada minuto de uso con su monstruo';
+end $$;
+
 do $$ begin
   update public.daily_sessions set hp_final = 120 where fecha = '2026-10-13';
   raise exception 'FALLO: se editó un día cerrado';

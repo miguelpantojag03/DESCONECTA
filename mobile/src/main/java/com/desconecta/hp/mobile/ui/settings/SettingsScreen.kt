@@ -72,6 +72,11 @@ fun SettingsScreen(
     val s = game.settings
     var pinDialog by remember { mutableStateOf(false) }
     var resetDialog by remember { mutableStateOf(false) }
+    // Prevención de errores (Nielsen nº 5): bajar la vida por debajo de lo ya usado hoy
+    // termina la partida al instante; se avisa antes de aplicarlo.
+    var lowMaxConfirm by remember { mutableStateOf<Int?>(null) }
+    val usedToday = game.maxHp - game.currentHp
+    val todayBonus = java.time.LocalDate.now().dayOfWeek.let { if (it == java.time.DayOfWeek.SATURDAY || it == java.time.DayOfWeek.SUNDAY) prefs.weekendBonus else 0 }
 
     Column(
         Modifier.fillMaxSize().background(c.background).verticalScroll(rememberScrollState()).padding(HpSpacing.lg),
@@ -84,7 +89,10 @@ fun SettingsScreen(
                 Health.MAX_PRESETS.forEach { v ->
                     FilterChip(
                         selected = prefs.maxHpWeekday == v,
-                        onClick = { onMaxHp(v, prefs.weekendBonus) },
+                        onClick = {
+                            if (v != prefs.maxHpWeekday && v + todayBonus <= usedToday && game.phase != com.desconecta.hp.shared.model.GamePhase.GAME_OVER) lowMaxConfirm = v
+                            else onMaxHp(v, prefs.weekendBonus)
+                        },
                         label = { Text("$v") },
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = c.healthyContainer, selectedLabelColor = c.hpHealthy),
                     )
@@ -158,6 +166,16 @@ fun SettingsScreen(
     }
 
     if (pinDialog) PinDialog(onDismiss = { pinDialog = false }, onSave = { onPin(it); pinDialog = false })
+    lowMaxConfirm?.let { v ->
+        AlertDialog(
+            onDismissRequest = { lowMaxConfirm = null },
+            title = { Text("Terminarías en Game Over") },
+            text = { Text("Hoy ya usaste ${formatMinutes(usedToday)}. Con $v HP de vida máxima, la partida de hoy acabaría ahora mismo y el teléfono se bloquearía hasta medianoche.") },
+            confirmButton = { TextButton(onClick = { lowMaxConfirm = null; onMaxHp(v, prefs.weekendBonus) }) { Text("Cambiar igualmente", color = c.hpCritical) } },
+            dismissButton = { TextButton(onClick = { lowMaxConfirm = null }) { Text("Cancelar") } },
+            containerColor = c.surfaceElevated,
+        )
+    }
     if (resetDialog) {
         AlertDialog(
             onDismissRequest = { resetDialog = false },

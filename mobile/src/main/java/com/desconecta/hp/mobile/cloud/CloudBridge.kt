@@ -133,6 +133,9 @@ class CloudBridge @Inject constructor(
             snapshot,
             pendingPotions = queue.pendingItemUses("pocion"),
             pendingShields = queue.pendingItemUses("escudo"),
+            // Con un cierre de día pendiente, la XP/racha del servidor está atrasada: tomarla
+            // haría bajar el nivel y, al confirmarse, se repetiría la celebración de subida.
+            keepLocalProgress = queue.hasPendingCloseDay(),
         )
         runCatching { aiSettings.get().mergeServer() }
     }

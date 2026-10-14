@@ -143,7 +143,17 @@ class AppCatalog @Inject constructor(@param:ApplicationContext private val conte
         val home = pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), 0)
             .map { it.activityInfo.packageName }
         val dialer = context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage
+        // El teclado abre su propia ventana: sin esto, escribir en una app aliada durante el
+        // Game Over (o en la propia HP) disparaba la pantalla de bloqueo.
+        val keyboards = context.getSystemService(android.view.inputmethod.InputMethodManager::class.java)
+            ?.enabledInputMethodList?.map { it.packageName }.orEmpty()
         return buildSet {
+            addAll(keyboards)
+            // Diálogos de permisos e instalador del sistema (p. ej. al conceder permisos a HP).
+            add("com.google.android.permissioncontroller")
+            add("com.android.permissioncontroller")
+            add("com.google.android.packageinstaller")
+            add("com.android.packageinstaller")
             add(context.packageName)
             add("com.android.systemui")
             add("com.android.settings")

@@ -257,13 +257,15 @@ class GameRepository @Inject constructor(
      * Fusiona lo que decide el servidor. Si sube de nivel o hay logros nuevos, se emiten
      * los eventos y llegan al reloj como cualquier otro (celebración al instante).
      */
-    suspend fun mergeServer(snapshot: ServerSnapshot, pendingPotions: Int, pendingShields: Int) = mutate { s ->
+    suspend fun mergeServer(snapshot: ServerSnapshot, pendingPotions: Int, pendingShields: Int, keepLocalProgress: Boolean = false) = mutate { s ->
         val events = mutableListOf<GameEvent>()
         var player = s.player
         var inventory = s.inventory
         snapshot.profile?.let { p ->
-            if (Progression.levelFor(p.xp) > s.player.level) events += GameEvent.LevelUp(Progression.levelFor(p.xp))
-            player = player.copy(totalXp = p.xp, streakDays = p.streak, bestStreak = p.bestStreak)
+            if (!keepLocalProgress) {
+                if (Progression.levelFor(p.xp) > s.player.level) events += GameEvent.LevelUp(Progression.levelFor(p.xp))
+                player = player.copy(totalXp = p.xp, streakDays = p.streak, bestStreak = p.bestStreak)
+            }
             runCatching { Instant.parse(p.reviveAvailableAt).toEpochMilli() }.getOrNull()?.let {
                 inventory = inventory.copy(reviveAvailableAt = it)
             }
@@ -376,10 +378,20 @@ class GameRepository @Inject constructor(
 
     suspend fun setMaxHp(weekday: Int, weekendBonus: Int) {
         store.setMaxHp(weekday, weekendBonus)
-        // El cambio aplica hoy mismo si no se ha consumido más de lo que permite el nuevo máximo.
+        // El cambio aplica hoy mismo: el máximo de HOY incluye el extra si es fin de semana, y
+        // se conserva lo ya gastado. Si lo gastado supera el nuevo máximo, es Game Over (no un
+        // estado "0 HP jugando" que el resto de reglas no espera).
+        val today = LocalDate.now().dayOfWeek
+        val todayMax = weekday + if (today == DayOfWeek.SATURDAY || today == DayOfWeek.SUNDAY) weekendBonus else 0
         mutate { s ->
+            if (s.phase == GamePhase.GAME_OVER || todayMax == s.maxHp) return@mutate Outcome(s)
             val used = s.maxHp - s.currentHp
-            Outcome(s.copy(maxHp = weekday, hp = (weekday - used).coerceAtLeast(0)))
+            val hp = (todayMax - used).coerceAtLeast(0)
+            if (hp == 0) {
+                Outcome(s.copy(maxHp = todayMax, hp = 0, phase = GamePhase.GAME_OVER, activeAttacker = null), listOf(GameEvent.GameOver))
+            } else {
+                Outcome(s.copy(maxHp = todayMax, hp = hp))
+            }
         } ?: return
         if (cloud.isCloudActive()) {
             queue.enqueue(SyncOp.Profile(buildJsonObject {

@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -123,16 +122,25 @@ class WatchViewModel @Inject constructor(
         if (_action.value == ActionState.Sending) return
         _action.value = ActionState.Sending
         viewModelScope.launch {
-            _action.update {
-                when (val outcome = repository.send(command)) {
-                    CommandOutcome.Ok -> ActionState.Success(successMessage)
-                    CommandOutcome.Offline -> ActionState.Failure("Tu teléfono no está conectado. Acércalo e inténtalo de nuevo.", retryable = true)
-                    CommandOutcome.Timeout -> ActionState.Failure("El teléfono no respondió. Inténtalo de nuevo.", retryable = true)
-                    is CommandOutcome.Rejected -> ActionState.Failure(
-                        if (outcome.result.wrongPin) "PIN incorrecto." else rejectionMessage(outcome.result.rejection),
-                        retryable = outcome.result.wrongPin,
-                    )
-                }
+            // Se envía UNA sola vez y luego se asigna el estado. (Antes iba dentro de update {},
+            // que repite su bloque si el estado cambia a la vez: reenviaba el comando.)
+            val outcome = repository.send(command)
+            if (outcome == CommandOutcome.Timeout) {
+                // Sin respuesta no se sabe si se aplicó: se resincroniza para que el estado lo aclare.
+                repository.send(WireCommand.RequestSync(WatchGameRepository.newRequestId()), awaitResult = false)
+            }
+            _action.value = when (outcome) {
+                CommandOutcome.Ok -> ActionState.Success(successMessage)
+                CommandOutcome.Offline -> ActionState.Failure("Tu teléfono no está conectado. Acércalo e inténtalo de nuevo.", retryable = true)
+                // Reintentar a ciegas podría gastar dos objetos: se pide revisar primero.
+                CommandOutcome.Timeout -> ActionState.Failure(
+                    "El teléfono tardó en responder. Revisa tu vida y tus objetos antes de volver a intentarlo.",
+                    retryable = false,
+                )
+                is CommandOutcome.Rejected -> ActionState.Failure(
+                    if (outcome.result.wrongPin) "PIN incorrecto." else rejectionMessage(outcome.result.rejection),
+                    retryable = outcome.result.wrongPin,
+                )
             }
         }
     }

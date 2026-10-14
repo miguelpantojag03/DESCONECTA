@@ -53,7 +53,7 @@ release.storeFile=…                            # opcional: firma de release (m
 ```
 
 Base de datos: en el SQL Editor de Supabase, pegar `supabase/deploy/hp_schema_v2.sql` y después
-`supabase/migrations/006_usage_upsert.sql`. En Authentication → URL Configuration, añadir la redirección
+`supabase/migrations/006_usage_upsert.sql` y `007_usage_monster_link.sql`. En Authentication → URL Configuration, añadir la redirección
 `hpdesconecta://auth/**`. Sin `supabase.url` la app funciona igual, solo en el dispositivo.
 
 ## Compilar y probar
