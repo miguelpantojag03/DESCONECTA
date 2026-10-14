@@ -36,7 +36,10 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.desconecta.hp.mobile.ui.ai.BerserkerCard
 import com.desconecta.hp.mobile.ui.ai.CoachCard
+import com.desconecta.hp.mobile.ui.ai.OracleLine
+import com.desconecta.hp.mobile.ui.ai.OracleRow
 import com.desconecta.hp.mobile.ui.ai.LimitSuggestionCard
 import com.desconecta.hp.mobile.ui.components.HpCard
 import com.desconecta.hp.shared.ai.model.AiFeedback
@@ -87,6 +90,9 @@ fun HomeScreen(
     onAiFeedback: (AiInsight, AiFeedback) -> Unit = { _, _ -> },
     onAcceptLimit: (AiInsight, Int) -> Unit = { _, _ -> },
     onRejectLimit: (AiInsight) -> Unit = {},
+    oracle: OracleLine? = null,
+    berserker: AiInsight? = null,
+    onBerserker: (AiInsight, Boolean) -> Unit = { _, _ -> },
 ) {
     val c = Hp.colors
     val p = game.player
@@ -154,8 +160,14 @@ fun HomeScreen(
                         style = Hp.type.caption,
                         color = if (attacker != null) c.hpCritical else c.textSecondary,
                     )
+                    if (oracle != null) OracleRow(oracle)
                 }
             }
+        }
+
+        // --- Berserker: aviso tras una sesión larga (lo más urgente de la IA, va primero) ---
+        if (berserker != null) {
+            item(key = "berserker-" + berserker.id) { BerserkerCard(berserker) { onBerserker(berserker, it) } }
         }
 
         // --- Coach: el compañero comenta justo debajo de la vida (de lo que habla) ---------

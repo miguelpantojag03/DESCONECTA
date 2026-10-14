@@ -140,3 +140,28 @@ class LimitRulesTest {
         assertEquals(Confidence.HIGH, LimitRules.confidence(listOf(30, 32, 28, 31, 29, 30, 30)))
     }
 }
+
+class OracleRulesTest {
+    private val now = 1_000_000_000L
+    private fun state(hp: Int, used: Int) = GameState(dayKey = "2026-10-14", maxHp = 120, hp = hp, usedMinutesToday = used)
+
+    @Test fun silentWithoutEnoughData() {
+        assertNull(com.desconecta.hp.shared.ai.rules.OracleRules.forecast(state(115, 5), now, 15 * 60, now + 9 * 3_600_000))
+        assertNull("antes de las 7", com.desconecta.hp.shared.ai.rules.OracleRules.forecast(state(100, 20), now, 6 * 60, now + 18 * 3_600_000))
+    }
+
+    @Test fun predictsGameOverAtCurrentPace() {
+        // 15:00: 80 min de uso en 8 h = 10 min/h; quedan 40 HP → 4 h → Game Over a las 19:00.
+        val f = com.desconecta.hp.shared.ai.rules.OracleRules.forecast(state(40, 80), now, 15 * 60, now + 9 * 3_600_000)!!
+        assertEquals(now + 4 * 3_600_000, f.gameOverAt)
+        assertEquals(Confidence.MEDIUM, f.confidence)
+    }
+
+    @Test fun reachesMidnightWhenPaceIsLow() {
+        // 20:00: 26 min en 13 h = 2 min/h; quedan 4 h → −8 HP → llega con 86.
+        val f = com.desconecta.hp.shared.ai.rules.OracleRules.forecast(state(94, 26), now, 20 * 60, now + 4 * 3_600_000)!!
+        assertNull(f.gameOverAt)
+        assertEquals(86, f.hpAtMidnight)
+        assertTrue(com.desconecta.hp.shared.ai.rules.OracleRules.sentence(f) { "" }.contains("86 HP"))
+    }
+}

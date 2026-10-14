@@ -238,6 +238,8 @@ fun PhoneApp(viewModel: MainViewModel) {
                     val aiVm: AiHomeViewModel = hiltViewModel()
                     val coach by aiVm.coach.collectAsStateWithLifecycle()
                     val limitSuggestions by aiVm.limits.collectAsStateWithLifecycle()
+                    val oracle by aiVm.oracle.collectAsStateWithLifecycle()
+                    val berserker by aiVm.berserker.collectAsStateWithLifecycle()
                     game?.let { g ->
                         HomeScreen(
                             game = g,
@@ -265,6 +267,12 @@ fun PhoneApp(viewModel: MainViewModel) {
                                 toast("Límite actualizado a $m min")
                             },
                             onRejectLimit = { aiVm.reject(it) },
+                            oracle = oracle,
+                            berserker = berserker,
+                            onBerserker = { i, pause ->
+                                aiVm.answerBerserker(i, pause)
+                                if (pause) toast("Buena decisión. Cierra la app y respira un minuto.")
+                            },
                         )
                     }
                 }

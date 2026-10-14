@@ -169,3 +169,50 @@ private fun AdjustLimitDialog(current: Int, suggested: Int, onDismiss: () -> Uni
         containerColor = c.surfaceElevated,
     )
 }
+
+/**
+ * Oráculo dentro de la tarjeta de vida (junto al dato que predice: Gestalt, proximidad).
+ * Es una estimación: lleva el cristal, la certeza en palabras y su "¿Por qué?".
+ */
+@Composable
+fun OracleRow(line: OracleLine) {
+    val c = Hp.colors
+    var why by rememberSaveable { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(HpSpacing.xs)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(HpSpacing.sm),
+            modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = "Predicción de la IA: ${line.text}" },
+        ) {
+            AiBadge(label = null)
+            Text(line.text, style = Hp.type.body, color = if (line.danger) c.hpHurt else c.textPrimary)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(HpSpacing.sm)) {
+            WhyChip(open = why, onToggle = { why = !why })
+            ConfidenceTag(line.confidence)
+        }
+        AnimatedVisibility(why) { WhyText(line.reason, com.desconecta.hp.shared.ai.model.AiOrigin.RULES) }
+    }
+}
+
+/**
+ * Modo berserker: una invitación, no un castigo. Dos opciones del mismo tamaño; "Sigo un
+ * rato" es tan válido como la pausa (la IA sugiere, el jugador decide).
+ */
+@Composable
+fun BerserkerCard(insight: AiInsight, onAnswer: (pause: Boolean) -> Unit) {
+    val c = Hp.colors
+    HpCard(container = c.aiContainer, border = c.ai) {
+        AiBadge(label = "MODO BERSERKER")
+        Text(
+            insight.content,
+            style = Hp.type.bodyStrong, color = c.textPrimary,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+        Text("Respira hondo tres veces y decide con calma.", style = Hp.type.caption, color = c.textSecondary)
+        Row(horizontalArrangement = Arrangement.spacedBy(HpSpacing.sm)) {
+            PrimaryButton("Hago una pausa", onClick = { onAnswer(true) }, modifier = Modifier.weight(1f), container = c.ai)
+            SecondaryButton("Sigo un rato", onClick = { onAnswer(false) }, modifier = Modifier.weight(1f))
+        }
+    }
+}

@@ -231,3 +231,16 @@ Capturas `29_panel_coach.png` y `30_ia_sugerencia_limite.png`.
 
 **Datos**: Room `ai_insights` (migración real 3→4) → Supabase `ai_insights` (insert idempotente por
 `client_id`; solo se actualizan respuesta y feedback, como permite el servidor).
+
+## Paso 7 · Fase 3: Oráculo y modo berserker (hecho, versión simple)
+
+A partir de aquí la IA se implementa en su **versión más simple** que demuestre la idea de diseño (es un
+proyecto de curso). Captura `31_panel_oraculo_berserker.png`.
+
+- **Oráculo** (`OracleRules.kt`): extrapola el ritmo de daño de hoy (minutos de monstruos desde las 7:00)
+  hasta medianoche → "A este ritmo te quedarías sin vida a las 21:40" o "llegas a medianoche con unos 86 HP".
+  Va dentro de la tarjeta de vida (proximidad con el dato que predice), en ámbar si prevé Game Over, con
+  certeza baja por la mañana y su "¿Por qué?". No aparece con menos de 10 min de uso.
+- **Berserker**: 25 min seguidos en el mismo monstruo → notificación ("Avisos de la IA") y tarjeta en el
+  panel con dos opciones del mismo tamaño: "Hago una pausa" / "Sigo un rato". Es una invitación, no un
+  castigo; no avisa en modo estudio y solo una vez por sesión.

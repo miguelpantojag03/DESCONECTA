@@ -187,4 +187,21 @@ class PhoneScreenshots {
             com.desconecta.hp.mobile.ui.ai.LimitSuggestionCard(limitInsight, {}, {}, {})
         }
     }
+
+    // --- IA fase 3 -----------------------------------------------------------------------
+    @Config(qualifiers = "w411dp-h1100dp-xxhdpi")
+    @Test fun panel_oraculo_berserker() = shot("31_panel_oraculo_berserker") {
+        HomeScreen(
+            game, SampleData.history, true, 0, now, {}, {}, {}, {}, {},
+            oracle = com.desconecta.hp.mobile.ui.ai.OracleLine(
+                "A este ritmo te quedarías sin vida a las 21:40.",
+                "Calculado con tu ritmo de hoy: 36 min de monstruos en 6 h.",
+                com.desconecta.hp.shared.ai.model.Confidence.MEDIUM, danger = true,
+            ),
+            berserker = coachInsight.copy(
+                id = "b1", type = com.desconecta.hp.shared.ai.model.InsightType.COMPULSIVE_ALERT,
+                content = "Llevas 25 min seguidos en Instagram. ¿Una pausa de un minuto?",
+            ),
+        )
+    }
 }

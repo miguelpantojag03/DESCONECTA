@@ -48,6 +48,7 @@ class AiCoordinator @Inject constructor(
     private val settings: AiSettingsRepository,
     private val insights: AiInsightRepository,
     private val db: HpDatabase,
+    @param:dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mutex = Mutex()
@@ -71,8 +72,67 @@ class AiCoordinator @Inject constructor(
     }
 
     private suspend fun tick() = mutex.withLock {
+        berserker()
         coach()
         limits()
+    }
+
+    // --- Modo berserker (versión simple: 25 min seguidos en el mismo monstruo) -----------
+
+    private var sessionPkg: String? = null
+    private var sessionStart = 0L
+    private var sessionAlerted = false
+
+    private suspend fun berserker() {
+        val s = game.state.value ?: return
+        val now = System.currentTimeMillis()
+        val pkg = s.activeAttacker
+        if (pkg != sessionPkg) {
+            sessionPkg = pkg
+            sessionStart = now
+            sessionAlerted = false
+            return
+        }
+        if (pkg == null || sessionAlerted || !settings.settings.value.isOn(AiFeature.COMPULSIVE)) return
+        if (s.studyModeActive(now) || now - sessionStart < BERSERKER_MINUTES * 60_000L) return
+        sessionAlerted = true
+        val name = s.monster(pkg)?.appLabel ?: return
+        val text = "Llevas $BERSERKER_MINUTES min seguidos en $name. ¿Una pausa de un minuto?"
+        insights.save(
+            AiInsight(
+                id = UUID.randomUUID().toString(),
+                type = InsightType.COMPULSIVE_ALERT,
+                content = text,
+                reason = "Sesión continua de $BERSERKER_MINUTES min en $name sin cerrar la app.",
+                confidence = com.desconecta.hp.shared.ai.model.Confidence.HIGH,
+                origin = com.desconecta.hp.shared.ai.model.AiOrigin.RULES,
+                createdAt = now,
+            ),
+        )
+        notify(text)
+    }
+
+    /** Aviso amable (canal propio, prioridad normal: no interrumpe con sonido fuerte). */
+    private fun notify(text: String) {
+        val nm = context.getSystemService(android.app.NotificationManager::class.java) ?: return
+        if (nm.getNotificationChannel(AI_CHANNEL) == null) {
+            nm.createNotificationChannel(
+                android.app.NotificationChannel(AI_CHANNEL, "Avisos de la IA", android.app.NotificationManager.IMPORTANCE_DEFAULT),
+            )
+        }
+        val open = android.app.PendingIntent.getActivity(
+            context, 0,
+            android.content.Intent(context, com.desconecta.hp.mobile.MainActivity::class.java),
+            android.app.PendingIntent.FLAG_IMMUTABLE,
+        )
+        val n = androidx.core.app.NotificationCompat.Builder(context, AI_CHANNEL)
+            .setSmallIcon(com.desconecta.hp.shared.R.drawable.ic_hp_heart)
+            .setContentTitle("Modo berserker")
+            .setContentText(text)
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .build()
+        runCatching { nm.notify(BERSERKER_NOTIFICATION, n) } // sin permiso de notificaciones queda la tarjeta
     }
 
     // --- Coach ---------------------------------------------------------------------------
@@ -144,6 +204,12 @@ class AiCoordinator @Inject constructor(
     }
 
     @Volatile private var lastLimitCheckDay: LocalDate? = null
+
+    companion object {
+        const val BERSERKER_MINUTES = 25
+        private const val AI_CHANNEL = "hp_ai"
+        private const val BERSERKER_NOTIFICATION = 4242
+    }
 
     /** Días anteriores (más reciente primero) con minutos por hora y app, solo agregados. */
     private suspend fun history(maxHp: Int): List<DayUsage> {
