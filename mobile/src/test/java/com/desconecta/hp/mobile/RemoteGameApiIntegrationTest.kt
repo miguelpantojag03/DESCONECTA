@@ -72,6 +72,11 @@ class RemoteGameApiIntegrationTest {
             api.upsertSession(day, 120, SessionUpdate(hpEnd = 70, regen = 5, potions = 1, gameOver = false, gameOverAt = null))
             api.upsertUsage(listOf(HourlyUsage(day, 21, "com.zhiliaoapp.musically", 40, isAlly = false)))
             api.upsertUsage(listOf(HourlyUsage(day, 21, "com.zhiliaoapp.musically", 45, isAlly = false)))   // la última cifra gana
+            // Migración 007: el servidor vincula el uso con su monstruo (el teléfono solo manda el paquete).
+            val linked = client.from("app_usage").select(io.github.jan.supabase.postgrest.query.Columns.list("monster_id")) {
+                filter { eq("fecha", day) }
+            }.decodeList<kotlinx.serialization.json.JsonObject>()
+            assertTrue("uso vinculado a su monstruo", linked.isNotEmpty() && linked.all { it["monster_id"]?.toString() == "\"$id\"" })
 
             // Poción (idempotente).
             val clientId = UUID.randomUUID().toString()
