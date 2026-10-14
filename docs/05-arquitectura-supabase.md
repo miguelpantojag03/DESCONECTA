@@ -134,3 +134,13 @@ UsageStatsManager, el bloqueo por accesibilidad y Device Admin, y el protocolo r
 - Google: Credential Manager con nonce. Requiere `google.webClientId` en `local.properties` y el proveedor Google
   activado en Supabase con ese mismo ID; sin él, el botón no aparece.
 - Los errores nunca revelan si un correo tiene cuenta ("correo o contraseña incorrectos").
+
+### Después del entregable 6
+
+- **Cuenta en la bienvenida:** al terminar de crear la partida se muestra una vez la pantalla de consentimiento
+  (se puede omitir con "Seguir solo en este dispositivo"). En una partida nueva no aparece el aviso de
+  "tu progreso no se pasa", porque no hay nada que perder.
+- **Versión firmada:** `assembleRelease` firma el teléfono y el reloj con la MISMA clave (requisito de la Data
+  Layer). La clave vive fuera del repositorio y sus datos en `local.properties` (`release.*`). R8 está desactivado
+  hasta añadir las reglas de supabase-kt / Ktor / serialization. Para Google en release hace falta un segundo
+  cliente Android en Google Cloud con el SHA-1 de esa clave; la redirección de Supabase es la misma.

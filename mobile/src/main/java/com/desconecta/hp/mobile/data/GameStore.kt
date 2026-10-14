@@ -37,6 +37,8 @@ data class PhonePrefs(
     val accountMode: AccountMode = AccountMode.LOCAL_ONLY,
     /** Epoch ms del consentimiento para guardar datos en la nube (0 = no dado). */
     val cloudConsentAt: Long = 0L,
+    /** Ya se ofreció crear cuenta al terminar la bienvenida (solo se ofrece una vez). */
+    val accountOffered: Boolean = false,
 )
 
 /**
@@ -56,6 +58,7 @@ class GameStore @Inject constructor(@param:ApplicationContext private val contex
         val ACCOUNT_MODE = stringPreferencesKey("account_mode")
         val CLOUD_CONSENT = androidx.datastore.preferences.core.longPreferencesKey("cloud_consent_at")
         val BOUND_USER = stringPreferencesKey("bound_user_id")
+        val ACCOUNT_OFFERED = booleanPreferencesKey("account_offered")
     }
 
     val prefs: Flow<PhonePrefs> = context.dataStore.data.map { p ->
@@ -66,6 +69,7 @@ class GameStore @Inject constructor(@param:ApplicationContext private val contex
             hasPin = p[Keys.PIN_HASH] != null,
             accountMode = runCatching { AccountMode.valueOf(p[Keys.ACCOUNT_MODE] ?: "") }.getOrDefault(AccountMode.LOCAL_ONLY),
             cloudConsentAt = p[Keys.CLOUD_CONSENT] ?: 0L,
+            accountOffered = p[Keys.ACCOUNT_OFFERED] ?: false,
         )
     }
 
@@ -94,6 +98,8 @@ class GameStore @Inject constructor(@param:ApplicationContext private val contex
         it[Keys.ACCOUNT_MODE] = mode.name
         if (consentAt != null) it[Keys.CLOUD_CONSENT] = consentAt
     }
+
+    suspend fun setAccountOffered() = context.dataStore.edit { it[Keys.ACCOUNT_OFFERED] = true }
 
     /** Consentimiento explícito para guardar datos en la nube (pantalla previa a crear cuenta). */
     suspend fun setCloudConsent(at: Long) = context.dataStore.edit { it[Keys.CLOUD_CONSENT] = at }

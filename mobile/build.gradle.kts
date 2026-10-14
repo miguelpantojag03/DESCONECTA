@@ -20,6 +20,11 @@ val localProps = Properties().apply {
 }
 fun localProp(name: String) = (localProps.getProperty(name) ?: "").replace("\"", "")
 
+val signingProps = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+}
+fun signingProp(name: String): String = signingProps.getProperty(name) ?: ""
+
 android {
     namespace = "com.desconecta.hp.mobile"
     compileSdk = 36
@@ -35,6 +40,30 @@ android {
         buildConfigField("String", "SUPABASE_KEY", "\"${localProp("supabase.key")}\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProp("google.webClientId")}\"")
     }
+    // Firma de release: el teléfono y el reloj usan la MISMA clave (la Data Layer solo
+    // comunica apps con el mismo applicationId y la misma firma). Datos en local.properties:
+    // release.storeFile / release.storePassword / release.keyAlias / release.keyPassword.
+    // Sin ellos, release se compila sin firmar.
+    val releaseStore = signingProp("release.storeFile")
+    if (releaseStore.isNotBlank() && file(releaseStore).exists()) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseStore)
+                storePassword = signingProp("release.storePassword")
+                keyAlias = signingProp("release.keyAlias")
+                keyPassword = signingProp("release.keyPassword")
+            }
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.findByName("release")
+            // Sin R8 por ahora: supabase-kt, Ktor y kotlinx.serialization necesitan reglas
+            // propias; se activará con ellas y una pasada de pruebas sobre el APK minificado.
+            isMinifyEnabled = false
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

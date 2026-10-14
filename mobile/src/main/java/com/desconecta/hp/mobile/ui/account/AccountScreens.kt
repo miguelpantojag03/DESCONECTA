@@ -128,7 +128,7 @@ private fun ConsentPoint(icon: ImageVector, tint: androidx.compose.ui.graphics.C
 // -------------------------------------------------------------------------------------
 
 @Composable
-fun ConsentScreen(onAccept: () -> Unit, onStayLocal: () -> Unit) {
+fun ConsentScreen(onAccept: () -> Unit, onStayLocal: () -> Unit, hasGuestProgress: Boolean = true) {
     val c = Hp.colors
     AccountScaffold {
         Text(
@@ -154,7 +154,8 @@ fun ConsentScreen(onAccept: () -> Unit, onStayLocal: () -> Unit) {
                 "Puedes exportar todos tus datos o borrar la cuenta cuando quieras, desde Configuración.",
             )
         }
-        HpCard(container = c.hurtContainer) {
+        // Solo si hay algo que perder: en una partida recién creada el aviso sería ruido.
+        if (hasGuestProgress) HpCard(container = c.hurtContainer) {
             ConsentPoint(
                 PixelIcons.HeartCracked, c.hpHurt, "Tu progreso sin cuenta no se pasa",
                 "Al entrar empezarás con el progreso de la cuenta: el nivel, la XP, la racha, los logros y los objetos de este teléfono se borran. Tus monstruos, límites y la vida de hoy se mantienen.",

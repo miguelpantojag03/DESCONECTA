@@ -156,6 +156,14 @@ fun PhoneApp(viewModel: MainViewModel) {
             val inOnboarding = current in setOf(Routes.INTRO, Routes.CHARACTER, Routes.PICK_MONSTERS)
             if (current == Routes.LOADING || (game == null && !inOnboarding) || (game != null && inOnboarding)) {
                 nav.navigate(target) { popUpTo(0) }
+                // Al terminar la bienvenida se ofrece la cuenta una sola vez (se puede omitir).
+                val p = prefs
+                if (game != null && inOnboarding && viewModel.cloudAvailable && p != null && !p.accountOffered &&
+                    authState !is AuthState.SignedIn
+                ) {
+                    viewModel.markAccountOffered()
+                    nav.navigate(Routes.ACCOUNT_CONSENT)
+                }
             }
         }
 
@@ -337,7 +345,9 @@ fun PhoneApp(viewModel: MainViewModel) {
                 // --- Cuenta (paso 6) ---------------------------------------------------
                 composable(Routes.ACCOUNT_CONSENT) {
                     val vm: AccountViewModel = hiltViewModel()
+                    val g = game
                     ConsentScreen(
+                        hasGuestProgress = g != null && (g.player.totalXp > 0 || g.unlockedAchievements.isNotEmpty() || g.player.streakDays > 0),
                         onAccept = {
                             vm.acceptCloud()
                             nav.navigate(Routes.auth(AuthMode.SIGN_UP)) { popUpTo(Routes.ACCOUNT_CONSENT) { inclusive = true } }

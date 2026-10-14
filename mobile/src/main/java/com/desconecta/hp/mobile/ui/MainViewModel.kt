@@ -153,6 +153,11 @@ class MainViewModel @Inject constructor(
 
     fun syncNow() = syncQueue.scheduleNow()
 
+    /** La nube está disponible en esta versión (hay credenciales de Supabase). */
+    val cloudAvailable: Boolean get() = auth.configured
+
+    fun markAccountOffered() = viewModelScope.launch { store.setAccountOffered() }
+
     fun signOut() = viewModelScope.launch {
         auth.signOut()
         syncQueue.cancelAll()
