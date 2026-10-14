@@ -152,7 +152,12 @@ fun AchievementsScreen(unlocked: Map<AchievementId, Long>) {
  * sin leyenda no se puede interpretar.
  */
 @Composable
-fun HistoryScreen(history: List<DaySummary>?, bestStreak: Int) {
+fun HistoryScreen(
+    history: List<DaySummary>?,
+    bestStreak: Int,
+    journal: com.desconecta.hp.shared.ai.model.AiInsight? = null,
+    onJournalFeedback: (com.desconecta.hp.shared.ai.model.AiFeedback) -> Unit = {},
+) {
     val c = Hp.colors
     var month by remember { mutableStateOf(YearMonth.now()) }
 
@@ -164,6 +169,7 @@ fun HistoryScreen(history: List<DaySummary>?, bestStreak: Int) {
             HpSkeleton(lines = 6, lineHeight = 32.dp)
             return@Column
         }
+        if (journal != null) com.desconecta.hp.mobile.ui.ai.JournalCard(journal, onJournalFeedback)
         if (history.isEmpty()) {
             HpStateMessage(
                 ScreenStateKind.EMPTY,

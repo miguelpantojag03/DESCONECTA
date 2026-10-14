@@ -11,6 +11,7 @@ import com.desconecta.hp.shared.ai.model.InsightType
 import com.desconecta.hp.shared.ai.model.LimitSuggestion
 import com.desconecta.hp.shared.ai.model.UserResponse
 import com.desconecta.hp.shared.ai.rules.CoachRules
+import com.desconecta.hp.shared.ai.rules.JournalRules
 import com.desconecta.hp.shared.ai.rules.LimitRules
 import com.desconecta.hp.shared.datalayer.WireCodec
 import kotlinx.coroutines.CoroutineScope
@@ -60,6 +61,12 @@ class AiCoordinator @Inject constructor(
             while (true) {
                 runCatching { tick() }
                 delay(60_000)
+            }
+        }
+        // Al terminar el día (respawn a medianoche) se escribe el diario de batalla.
+        scope.launch {
+            game.events.collect { e ->
+                if (e is com.desconecta.hp.shared.domain.GameEvent.Respawn) runCatching { journal(e.summary) }
             }
         }
         // Reacciona en cuanto empieza un ataque o una pausa, sin esperar al minuto.
@@ -165,6 +172,31 @@ class AiCoordinator @Inject constructor(
                 createdAt = now,
             ),
             templateKey = pick.templateKey,
+        )
+    }
+
+    // --- Diario de batalla (plantilla con los datos del día) -----------------------------
+
+    private suspend fun journal(day: com.desconecta.hp.shared.model.DaySummary) {
+        if (!settings.settings.value.isOn(AiFeature.JOURNAL)) return
+        val s = game.state.value ?: return
+        val rows = db.usage().sinceOnce(day.dayKey).filter { it.dayKey == day.dayKey && !it.isAlly }
+        val byPkg = rows.groupBy { it.packageName }.mapValues { (_, r) -> r.sumOf { it.minutes } }
+        val fights = s.monsters.map { m -> JournalRules.Fight(m.name, byPkg[m.packageName] ?: 0, m.limitMinutes) }
+        val worstHour = rows.groupBy { it.hour }.mapValues { (_, r) -> r.sumOf { it.minutes } }
+            .filterValues { it > 0 }.maxByOrNull { it.value }?.key
+        val j = JournalRules.write(day, fights, worstHour)
+        insights.save(
+            AiInsight(
+                id = UUID.randomUUID().toString(),
+                type = InsightType.DAILY_SUMMARY,
+                content = j.full,
+                reason = "Basado en tu vida al final del día y en los minutos por app y por hora.",
+                confidence = com.desconecta.hp.shared.ai.model.Confidence.HIGH,
+                origin = com.desconecta.hp.shared.ai.model.AiOrigin.RULES,
+                createdAt = System.currentTimeMillis(),
+                payload = WireCodec.json.encodeToString(com.desconecta.hp.shared.ai.model.BattleJournal.serializer(), j),
+            ),
         )
     }
 

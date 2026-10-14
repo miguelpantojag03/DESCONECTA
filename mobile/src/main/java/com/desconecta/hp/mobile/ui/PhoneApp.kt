@@ -332,7 +332,11 @@ fun PhoneApp(viewModel: MainViewModel) {
                     val dates by viewModel.achievementDates.collectAsStateWithLifecycle()
                     AchievementsScreen(game?.unlockedAchievements.orEmpty() + dates)
                 }
-                composable(Routes.HISTORY) { HistoryScreen(history, game?.player?.bestStreak ?: 0) }
+                composable(Routes.HISTORY) {
+                    val aiVm: AiHomeViewModel = hiltViewModel()
+                    val journal by aiVm.journal.collectAsStateWithLifecycle()
+                    HistoryScreen(history, game?.player?.bestStreak ?: 0, journal, onJournalFeedback = { fb -> journal?.let { aiVm.feedback(it, fb) } })
+                }
                 composable(Routes.AVATAR) {
                     game?.let { g -> AvatarScreen(g.player, onStyle = viewModel::setAvatar, onToggle = viewModel::toggleAccessory) }
                 }

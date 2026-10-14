@@ -216,3 +216,25 @@ fun BerserkerCard(insight: AiInsight, onAnswer: (pause: Boolean) -> Unit) {
         }
     }
 }
+
+/** Diario de batalla del último día, arriba del historial (el dato que resume va con su detalle). */
+@Composable
+fun JournalCard(insight: AiInsight, onFeedback: (AiFeedback) -> Unit) {
+    val c = Hp.colors
+    val day = insight.payload
+        ?.let { runCatching { WireCodec.json.decodeFromString(com.desconecta.hp.shared.ai.model.BattleJournal.serializer(), it) }.getOrNull() }
+        ?.dayKey?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
+    val label = day?.format(java.time.format.DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", java.util.Locale.forLanguageTag("es")))
+    HpCard(border = c.ai) {
+        AiBadge(label = "DIARIO DE BATALLA")
+        if (label != null) Text(label.replaceFirstChar { it.uppercase() }, style = Hp.type.caption, color = c.textSecondary)
+        Text(
+            insight.content, style = Hp.type.body, color = c.textPrimary,
+            modifier = Modifier.semantics { contentDescription = "Diario de la IA: ${insight.content}" },
+        )
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Escrito con tus datos del día · Reglas", style = Hp.type.caption, color = c.textSecondary, modifier = Modifier.weight(1f))
+            FeedbackButtons(insight.feedback, onFeedback)
+        }
+    }
+}

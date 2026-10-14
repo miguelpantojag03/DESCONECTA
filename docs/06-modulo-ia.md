@@ -244,3 +244,11 @@ proyecto de curso). Captura `31_panel_oraculo_berserker.png`.
 - **Berserker**: 25 min seguidos en el mismo monstruo → notificación ("Avisos de la IA") y tarjeta en el
   panel con dos opciones del mismo tamaño: "Hago una pausa" / "Sigo un rato". Es una invitación, no un
   castigo; no avisa en modo estudio y solo una vez por sesión.
+
+## Paso 7 · Fase 4: diario de batalla (hecho, versión simple)
+
+Captura `32_historial_diario.png`. Al terminar el día (respawn) se escribe con `JournalRules` un resumen
+narrativo con los datos reales: resultado, rival más duro, monstruos que se mantuvieron a raya, hora más
+intensa y un cierre. Un Game Over se cuenta como "los monstruos ganaron esta vez… hoy es tu revancha",
+nunca como un fracaso (sin culpa). Aparece arriba del Historial con 👍/👎 y la marca de origen ("Reglas").
+Los **jefes semanales** siguen siendo los del catálogo (decisión de alcance: proyecto de curso).

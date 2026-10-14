@@ -66,6 +66,11 @@ class AiHomeViewModel @Inject constructor(
         if (cfg.isOn(AiFeature.LIMITS)) list else emptyList()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Último diario de batalla (Historial). */
+    val journal: StateFlow<AiInsight?> = combine(insights.latest(InsightType.DAILY_SUMMARY), settings.settings) { j, cfg ->
+        j?.takeIf { cfg.isOn(AiFeature.JOURNAL) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     fun feedback(insight: AiInsight, value: AiFeedback) = viewModelScope.launch { insights.feedback(insight.id, value) }
     fun accept(insight: AiInsight, minutes: Int) = viewModelScope.launch { coordinator.acceptLimit(insight, minutes) }
     fun reject(insight: AiInsight) = viewModelScope.launch { coordinator.rejectLimit(insight) }

@@ -165,3 +165,31 @@ class OracleRulesTest {
         assertTrue(com.desconecta.hp.shared.ai.rules.OracleRules.sentence(f) { "" }.contains("86 HP"))
     }
 }
+
+class JournalRulesTest {
+    private val fights = listOf(
+        com.desconecta.hp.shared.ai.rules.JournalRules.Fight("Scrollzilla", 40, 30),
+        com.desconecta.hp.shared.ai.rules.JournalRules.Fight("Rey Autoplay", 10, 45),
+    )
+
+    @Test fun victoryJournal() {
+        val j = com.desconecta.hp.shared.ai.rules.JournalRules.write(
+            com.desconecta.hp.shared.model.DaySummary("2026-10-13", 120, 70, false, 70), fights, worstHour = 22,
+        )
+        assertTrue(j.full.contains("70 de 120 HP"))
+        assertTrue(j.full.contains("Scrollzilla fue tu rival más duro: 40 min"))
+        assertTrue(j.full.contains("1 de 2 monstruos"))
+        assertTrue(j.full.contains("22:00"))
+        assertTrue("cabe en el reloj", OutputValidator.isValid(j.short))
+        assertTrue(OutputValidator.isValid(j.full, OutputValidator.PHONE_MAX))
+    }
+
+    @Test fun gameOverIsToldKindly() {
+        val j = com.desconecta.hp.shared.ai.rules.JournalRules.write(
+            com.desconecta.hp.shared.model.DaySummary("2026-10-13", 120, 0, true, 0), fights, worstHour = null,
+        )
+        assertTrue(j.full.contains("revancha"))
+        assertTrue("sin culpa ni vergüenza", OutputValidator.isValid(j.full, OutputValidator.PHONE_MAX))
+        assertTrue(OutputValidator.isValid(j.short))
+    }
+}

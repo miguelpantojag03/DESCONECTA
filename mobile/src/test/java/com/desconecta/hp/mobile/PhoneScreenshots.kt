@@ -204,4 +204,24 @@ class PhoneScreenshots {
             ),
         )
     }
+
+    // --- IA fase 4 -----------------------------------------------------------------------
+    @Test fun historial_diario() = shot("32_historial_diario") {
+        val j = com.desconecta.hp.shared.ai.rules.JournalRules.write(
+            com.desconecta.hp.shared.model.DaySummary("2026-10-13", 120, 70, false, 70),
+            listOf(
+                com.desconecta.hp.shared.ai.rules.JournalRules.Fight("Scrollzilla", 40, 30),
+                com.desconecta.hp.shared.ai.rules.JournalRules.Fight("La Medusa del Feed", 25, 45),
+                com.desconecta.hp.shared.ai.rules.JournalRules.Fight("Rey Autoplay", 10, 45),
+            ),
+            worstHour = 22,
+        )
+        HistoryScreen(
+            SampleData.history.map { it.copy(dayKey = "2026-10-" + it.dayKey.takeLast(2)) }, 15,
+            journal = coachInsight.copy(
+                id = "j1", type = com.desconecta.hp.shared.ai.model.InsightType.DAILY_SUMMARY, content = j.full,
+                payload = com.desconecta.hp.shared.datalayer.WireCodec.json.encodeToString(com.desconecta.hp.shared.ai.model.BattleJournal.serializer(), j),
+            ),
+        )
+    }
 }
