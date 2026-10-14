@@ -252,3 +252,14 @@ narrativo con los datos reales: resultado, rival más duro, monstruos que se man
 intensa y un cierre. Un Game Over se cuenta como "los monstruos ganaron esta vez… hoy es tu revancha",
 nunca como un fracaso (sin culpa). Aparece arriba del Historial con 👍/👎 y la marca de origen ("Reglas").
 Los **jefes semanales** siguen siendo los del catálogo (decisión de alcance: proyecto de curso).
+
+## Paso 7 · Fase 5: la IA en el reloj (hecho, versión simple)
+
+Capturas `docs/screenshots/wear/27_hud_ia_coach.png` y `28_hud_ia_coach_herido.png`.
+
+- El teléfono calcula y el reloj solo muestra: `GameState.aiLine` (ya sincronizado por la Data Layer) lleva
+  la frase del coach durante 30 min tras decirla.
+- En el HUD ocupa el lugar de la fila del avatar (una línea con el cristal; tocar la expande). No se coloca
+  encima de la vida: probado y tapaba el número de HP (jerarquía: el dato principal no se cubre).
+- El **Oráculo se queda en el teléfono**: en la pantalla redonda no cabe sin tapar la vida.
+- Sin comandos de voz (decisión de alcance del proyecto de curso).

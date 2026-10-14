@@ -163,6 +163,11 @@ data class GameState(
     val syncIssue: String? = null,
     /** El usuario está en pausa (sin usar el teléfono) y acumulando regeneración. */
     val regenerating: Boolean = false,
+    /**
+     * Línea de la IA para el reloj (frase del coach, ≤ 80 caracteres). La calcula el
+     * teléfono: el reloj solo la muestra. null = nada que decir o IA desactivada.
+     */
+    val aiLine: String? = null,
     val updatedAt: Long = 0L,
 ) {
     val currentHp: Int get() = hp.coerceIn(0, maxHp)

@@ -286,6 +286,9 @@ class GameRepository @Inject constructor(
         Outcome(s.copy(player = player, inventory = inventory, unlockedAchievements = unlocked), events)
     }
 
+    /** Línea de la IA que verá el reloj (solo se publica si cambia). */
+    suspend fun setAiLine(line: String?) = mutate { s -> Outcome(if (s.aiLine == line) s else s.copy(aiLine = line)) }
+
     /** Aviso para el reloj ("Inicia sesión en tu teléfono") o null si todo va bien. */
     suspend fun setSyncIssue(issue: String?) = mutate { s -> Outcome(if (s.syncIssue == issue) s else s.copy(syncIssue = issue)) }
 

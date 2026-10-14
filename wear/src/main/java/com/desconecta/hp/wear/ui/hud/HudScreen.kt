@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import com.desconecta.hp.shared.designsystem.component.Avatar
 import com.desconecta.hp.shared.designsystem.component.StreakPill
 import com.desconecta.hp.shared.designsystem.component.healthbar.HealthAttacker
+import com.desconecta.hp.shared.designsystem.component.ai.AiSpeechBubble
+import com.desconecta.hp.shared.designsystem.component.ai.BubbleTail
 import com.desconecta.hp.shared.designsystem.component.healthbar.HealthBar
 import com.desconecta.hp.shared.designsystem.component.healthbar.HealthBarVariant
 import com.desconecta.hp.shared.designsystem.component.toMood
@@ -70,7 +72,7 @@ fun HudScreen(
             ) {
                 TopChip(game, connected, lastSyncText, ambient)
                 Spacer(Modifier.weight(1f))
-                PlayerStrip(game, ambient)
+                BottomStrip(game, ambient, Modifier.padding(horizontal = 30.dp))
             }
         } else {
             // Reloj cuadrado: barra recta arriba, el resto en columna.
@@ -87,7 +89,7 @@ fun HudScreen(
                     regenerating = game.regenerating,
                     heartbeatHaptics = !ambient,
                 )
-                PlayerStrip(game, ambient)
+                BottomStrip(game, ambient)
             }
         }
     }
@@ -137,6 +139,18 @@ private fun RegenChip() {
         Image(PixelIcons.Heart, null, Modifier.size(14.dp), colorFilter = ColorFilter.tint(c.regen))
         BasicText(" Regenerando", style = Hp.type.caption.copy(color = c.regen))
     }
+}
+
+/**
+ * Franja inferior. Mientras el coach acaba de hablar (lo decide el teléfono, 30 min), su
+ * frase ocupa el sitio del avatar: una línea con el cristal que se expande al tocarla. No se
+ * pone encima de la vida para no tapar el dato principal (jerarquía). En ambient, nunca.
+ */
+@Composable
+private fun BottomStrip(game: GameState, ambient: Boolean, modifier: Modifier = Modifier) {
+    val line = game.aiLine
+    if (ambient || line.isNullOrBlank()) PlayerStrip(game, ambient)
+    else AiSpeechBubble(line, modifier = modifier, tail = BubbleTail.NONE)
 }
 
 /** Avatar pequeño flanqueado por nivel y racha, en el hueco inferior del arco. */

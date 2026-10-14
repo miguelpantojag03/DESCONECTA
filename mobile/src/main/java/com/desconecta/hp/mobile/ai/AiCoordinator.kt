@@ -82,6 +82,21 @@ class AiCoordinator @Inject constructor(
         berserker()
         coach()
         limits()
+        watchLine()
+    }
+
+    // --- Línea para el reloj ---------------------------------------------------------------
+
+    /**
+     * Frase del coach durante 30 min tras hablar (null si no). El Oráculo no va al reloj: en la
+     * pantalla redonda no cabe sin tapar la vida; se queda en el teléfono.
+     */
+    private suspend fun watchLine() {
+        val cfg = settings.settings.value
+        val now = System.currentTimeMillis()
+        val coach = insights.latest(InsightType.COACH_MESSAGE).first()
+            ?.takeIf { cfg.isOn(AiFeature.COACH) && now - it.createdAt < 30 * 60_000 }?.content
+        game.setAiLine(coach)
     }
 
     // --- Modo berserker (versión simple: 25 min seguidos en el mismo monstruo) -----------

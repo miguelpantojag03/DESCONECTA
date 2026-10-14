@@ -126,4 +126,12 @@ class WatchScreenshots {
     @Config(qualifiers = SQUARE)
     @Test fun ia_tokens_cuadrado() = shot("25_ia_tokens_cuadrado") { com.desconecta.hp.shared.designsystem.component.ai.AiWatchSample() }
     @Test fun ia_tokens_ambient() = shot("26_ia_tokens_ambient", ambient = true) { com.desconecta.hp.shared.designsystem.component.ai.AiWatchSample() }
+
+    // --- IA fase 5: línea del coach / Oráculo en el HUD --------------------------------
+    @Test fun hud_ia_coach() = shot("27_hud_ia_coach") {
+        HudScreen(game.copy(aiLine = "¡Vas genial! Guarda esa vida para esta noche."), true, "")
+    }
+    @Test fun hud_ia_coach_herido() = shot("28_hud_ia_coach_herido") {
+        HudScreen(SampleData.gameState(hp = 47).copy(aiLine = "Cada minuto en TikTok es 1 HP menos."), true, "")
+    }
 }
