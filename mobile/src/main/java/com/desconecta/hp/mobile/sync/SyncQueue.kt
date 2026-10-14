@@ -83,6 +83,18 @@ sealed interface SyncOp {
         override val coalesceKey get() = "ai_settings"
     }
 
+    /** Resultado de la IA nuevo (coach, sugerencia…). Idempotente por client_id. */
+    @Serializable @SerialName("insight")
+    data class InsightInsert(val id: String, val row: JsonObject) : SyncOp {
+        override val coalesceKey get() = "insight:$id"
+    }
+
+    /** Respuesta y 👍/👎 de un resultado: solo importa el último valor. */
+    @Serializable @SerialName("insight_response")
+    data class InsightResponse(val id: String, val response: String, val feedback: String?) : SyncOp {
+        override val coalesceKey get() = "insight_resp:$id"
+    }
+
     /** Columnas editables del perfil (nombre, avatar, vida máxima…). */
     @Serializable @SerialName("profile")
     data class Profile(val fields: JsonObject) : SyncOp {

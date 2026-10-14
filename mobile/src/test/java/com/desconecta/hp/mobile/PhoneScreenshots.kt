@@ -156,4 +156,35 @@ class PhoneScreenshots {
     @Test fun ia_ajustes_familiar() = shot("28_ia_ajustes_familiar") {
         aiScreen(com.desconecta.hp.shared.ai.model.AiSettings().withFamilyMode(true, 1), null, signedIn = true)
     }
+
+    // --- IA fase 2 -----------------------------------------------------------------------
+    private val coachInsight = com.desconecta.hp.shared.ai.model.AiInsight(
+        id = "c1", type = com.desconecta.hp.shared.ai.model.InsightType.COACH_MESSAGE,
+        content = "Cada minuto fuera de La Medusa del Feed es vida que guardas. ¡Vamos!",
+        reason = "La Medusa del Feed te está quitando vida ahora mismo.",
+        confidence = com.desconecta.hp.shared.ai.model.Confidence.HIGH,
+        origin = com.desconecta.hp.shared.ai.model.AiOrigin.RULES, createdAt = now,
+    )
+    private val limitInsight = com.desconecta.hp.shared.ai.model.AiInsight(
+        id = "l1", type = com.desconecta.hp.shared.ai.model.InsightType.LIMIT_SUGGESTION,
+        content = "TikTok: 45 → 35 min al día",
+        reason = "Tu media en TikTok fue 38 min al día los últimos 7 días, y tu límite es 45 min.",
+        confidence = com.desconecta.hp.shared.ai.model.Confidence.MEDIUM,
+        origin = com.desconecta.hp.shared.ai.model.AiOrigin.RULES, createdAt = now,
+        payload = """{"packageName":"com.zhiliaoapp.musically","currentMinutes":45,"suggestedMinutes":35}""",
+    )
+
+    @Config(qualifiers = "w411dp-h1500dp-xxhdpi")
+    @Test fun panel_con_ia() = shot("29_panel_coach") {
+        HomeScreen(game, SampleData.history, true, 0, now, {}, {}, {}, {}, {}, coach = coachInsight)
+    }
+    @Test fun ia_sugerencia_limite() = shot("30_ia_sugerencia_limite") {
+        androidx.compose.foundation.layout.Column(
+            androidx.compose.ui.Modifier.background(com.desconecta.hp.shared.designsystem.theme.Hp.colors.background).padding(16.dp),
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+        ) {
+            com.desconecta.hp.mobile.ui.ai.CoachCard(coachInsight.copy(feedback = com.desconecta.hp.shared.ai.model.AiFeedback.POSITIVE), game.player, game.health.status) {}
+            com.desconecta.hp.mobile.ui.ai.LimitSuggestionCard(limitInsight, {}, {}, {})
+        }
+    }
 }

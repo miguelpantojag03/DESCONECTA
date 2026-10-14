@@ -34,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.desconecta.hp.mobile.cloud.AuthState
 import com.desconecta.hp.mobile.system.HpPermission
 import com.desconecta.hp.mobile.ui.account.AccountNotice
+import com.desconecta.hp.mobile.ui.ai.AiHomeViewModel
 import com.desconecta.hp.mobile.ui.ai.AiSettingsScreen
 import com.desconecta.hp.mobile.ui.ai.AiSettingsSummary
 import com.desconecta.hp.mobile.ui.ai.AiSettingsViewModel
@@ -234,6 +235,9 @@ fun PhoneApp(viewModel: MainViewModel) {
 
                 // --- Principal ---------------------------------------------------------
                 composable(Routes.HOME) {
+                    val aiVm: AiHomeViewModel = hiltViewModel()
+                    val coach by aiVm.coach.collectAsStateWithLifecycle()
+                    val limitSuggestions by aiVm.limits.collectAsStateWithLifecycle()
                     game?.let { g ->
                         HomeScreen(
                             game = g,
@@ -253,6 +257,14 @@ fun PhoneApp(viewModel: MainViewModel) {
                             onOpenAvatar = { nav.navigate(Routes.AVATAR) },
                             onOpenSettings = { nav.navigate(Routes.SETTINGS) },
                             onStudyMode = viewModel::setStudyMode,
+                            coach = coach,
+                            limitSuggestions = limitSuggestions,
+                            onAiFeedback = { i, fb -> aiVm.feedback(i, fb) },
+                            onAcceptLimit = { i, m ->
+                                aiVm.accept(i, m)
+                                toast("Límite actualizado a $m min")
+                            },
+                            onRejectLimit = { aiVm.reject(it) },
                         )
                     }
                 }

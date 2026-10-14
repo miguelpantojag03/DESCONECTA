@@ -209,6 +209,7 @@ class GameRepository @Inject constructor(
     suspend fun adoptAccount(snapshot: ServerSnapshot?) {
         db.history().clear()
         db.achievements().clear()
+        db.aiInsights().clear()
         db.usage().keepLocalBefore(LocalDate.now().toString())
         mutate { s ->
             val p = snapshot?.profile

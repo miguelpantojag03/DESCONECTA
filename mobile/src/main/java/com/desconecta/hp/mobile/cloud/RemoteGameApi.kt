@@ -390,6 +390,27 @@ class RemoteGameApi @Inject constructor(private val gateway: SupabaseGateway) {
         client().from("ai_settings").update(fields) { filter { eq("user_id", uid()) } }
     }
 
+    /**
+     * Sube un resultado de IA. El id local es también el client_id: reintentar no duplica
+     * (ON CONFLICT DO NOTHING, que no necesita permiso de UPDATE).
+     */
+    suspend fun insertInsight(row: JsonObject) {
+        client().from("ai_insights").upsert(row) {
+            onConflict = "client_id"
+            ignoreDuplicates = true
+        }
+    }
+
+    /** Respuesta del jugador (aceptada/ajustada/rechazada) y 👍/👎: únicas columnas editables. */
+    suspend fun updateInsight(id: String, response: String, feedback: String?) {
+        client().from("ai_insights").update(
+            buildJsonObject {
+                put("respuesta_usuario", response)
+                put("feedback", feedback?.let(::JsonPrimitive) ?: kotlinx.serialization.json.JsonNull)
+            },
+        ) { filter { eq("id", id) } }
+    }
+
     /** Borra insights y comandos de voz y reinicia el periodo de aprendizaje (RPC). */
     suspend fun deleteMyAiData() {
         client().postgrest.rpc("delete_my_ai_data")

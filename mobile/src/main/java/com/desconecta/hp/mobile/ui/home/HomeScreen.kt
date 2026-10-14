@@ -36,7 +36,11 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.desconecta.hp.mobile.ui.ai.CoachCard
+import com.desconecta.hp.mobile.ui.ai.LimitSuggestionCard
 import com.desconecta.hp.mobile.ui.components.HpCard
+import com.desconecta.hp.shared.ai.model.AiFeedback
+import com.desconecta.hp.shared.ai.model.AiInsight
 import com.desconecta.hp.mobile.ui.components.InfoRow
 import com.desconecta.hp.mobile.ui.components.PrimaryButton
 import com.desconecta.hp.mobile.ui.components.SecondaryButton
@@ -76,6 +80,13 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onStudyMode: (Int) -> Unit,
     syncIndicator: @Composable () -> Unit = {},
+    /** Última frase del coach de hoy (null = coach apagado o nada que decir). */
+    coach: AiInsight? = null,
+    /** Sugerencias de límite pendientes de respuesta. */
+    limitSuggestions: List<AiInsight> = emptyList(),
+    onAiFeedback: (AiInsight, AiFeedback) -> Unit = { _, _ -> },
+    onAcceptLimit: (AiInsight, Int) -> Unit = { _, _ -> },
+    onRejectLimit: (AiInsight) -> Unit = {},
 ) {
     val c = Hp.colors
     val p = game.player
@@ -147,6 +158,13 @@ fun HomeScreen(
             }
         }
 
+        // --- Coach: el compañero comenta justo debajo de la vida (de lo que habla) ---------
+        if (coach != null) {
+            item(key = "coach-" + coach.id) {
+                CoachCard(coach, p, game.health.status, onFeedback = { onAiFeedback(coach, it) })
+            }
+        }
+
         // --- Progreso --------------------------------------------------------------------
         item {
             HpCard {
@@ -179,6 +197,18 @@ fun HomeScreen(
         top.forEach { m ->
             item(key = m.packageName) {
                 MonsterCard(m, now = now, attacking = m.packageName == game.activeAttacker, onClick = onOpenBestiary)
+            }
+        }
+
+        // --- Sugerencias de la IA (junto a los monstruos a los que se refieren) ----------
+        limitSuggestions.forEach { insight ->
+            item(key = "limit-" + insight.id) {
+                LimitSuggestionCard(
+                    insight,
+                    onAccept = { onAcceptLimit(insight, it) },
+                    onReject = { onRejectLimit(insight) },
+                    onFeedback = { onAiFeedback(insight, it) },
+                )
             }
         }
 

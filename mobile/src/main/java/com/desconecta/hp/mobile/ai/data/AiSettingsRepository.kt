@@ -103,6 +103,7 @@ class AiSettingsRepository @Inject constructor(
      */
     suspend fun deleteAiData(): Result<Unit> = runCatching {
         if (signedIn) remote.deleteMyAiData()
+        db.aiInsights().clear()
         mutex.withLock {
             val current = dao.get()?.let(::decode) ?: AiSettings()
             val now = System.currentTimeMillis()

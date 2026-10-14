@@ -40,9 +40,9 @@ object AppModule {
     @Singleton
     fun database(@ApplicationContext context: Context): HpDatabase =
         Room.databaseBuilder(context, HpDatabase::class.java, "hp.db")
-            // v2 → v3 (ajustes de IA) es una migración real: no se pierde nada. Solo v1 → v2,
-            // de antes de la nube, recrea la base.
-            .addMigrations(com.desconecta.hp.mobile.data.db.MIGRATION_2_3)
+            // v2 → v3 → v4 (ajustes e insights de IA) son migraciones reales: no se pierde
+            // nada. Solo v1 → v2, de antes de la nube, recrea la base.
+            .addMigrations(com.desconecta.hp.mobile.data.db.MIGRATION_2_3, com.desconecta.hp.mobile.data.db.MIGRATION_3_4)
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 

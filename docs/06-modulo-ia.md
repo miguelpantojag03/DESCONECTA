@@ -203,3 +203,31 @@ Datos: Room `ai_settings` (migración real 2→3, sin perder historial ni cola) 
 Conflictos: gana el `updated_at` más reciente; el modo familiar siempre viene del perfil del servidor.
 La operación de sincronización aplica primero el modo familiar y luego los ajustes, así el servidor nunca
 recibe "nube permitida" con el modo familiar aún activo. Probado contra el proyecto real.
+
+## Paso 7 · Fase 2: coach y límites inteligentes (hecho)
+
+Capturas `29_panel_coach.png` y `30_ia_sugerencia_limite.png`.
+
+**Coach** (`shared/.../ai/rules/CoachRules.kt`)
+- 5 situaciones (atacado, vida baja, regenerando, buen día, mañana) × 4 tonos × 15 frases = **300 plantillas**.
+  Una prueba pasa las 300 por el validador con el nombre de monstruo más largo posible.
+- Solo habla si hay algo útil que decir; como mucho una vez cada N min (≥ 45) y **nunca** en Game Over,
+  en modo estudio ni de 23:00 a 07:00.
+- No repite las últimas 12 frases y **no vuelve a usar una frase que recibió 👎** (el feedback cambia el
+  comportamiento, no es decorativo; People + AI).
+- Nombres largos: nunca se cortan a medias; si la frase no cabe en 80 caracteres se usa el nombre de la app.
+- En el panel aparece justo debajo de la vida, con el avatar "hablando" (cola de la burbuja hacia él),
+  "¿Por qué?" con el dato concreto, certeza en palabras y 👍/👎.
+
+**Límites inteligentes** (`LimitRules.kt`)
+- Tras 7 días de datos, una vez al día como mucho, hasta 2 propuestas.
+- Uso muy por debajo del límite → media × 0,9 redondeada a 5 min. Límite superado 5 de 7 días → uno
+  **alcanzable** (entre el límite y la media): un límite imposible solo genera Game Over y abandono.
+- Sin uso en toda la semana no se propone nada; tampoco para un monstruo rechazado hace menos de 7 días.
+- Certeza según lo regular que es el uso (coeficiente de variación).
+- Tarjeta: el cambio se lee de un vistazo ("TikTok: 45 → 35 min al día"), el botón dice qué pasará
+  ("Aplicar 35 min"), "Ajustar" abre pasos de 5 min y "Ahora no" pesa lo mismo que ajustar. Nada se aplica
+  sin aceptar (principio 3: la IA nunca decide sola).
+
+**Datos**: Room `ai_insights` (migración real 3→4) → Supabase `ai_insights` (insert idempotente por
+`client_id`; solo se actualizan respuesta y feedback, como permite el servidor).

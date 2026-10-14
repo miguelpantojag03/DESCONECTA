@@ -192,6 +192,73 @@ interface AiSettingsDao {
     fun daysSince(fromDay: String): Flow<Int>
 }
 
+/**
+ * Resultado de la IA (coach, sugerencia de límite…): caché local de ai_insights. Los enums
+ * se guardan por nombre; [templateKey] identifica la plantilla del coach (para no repetirla
+ * y para no volver a usar las que recibieron 👎). Solo vive en el teléfono.
+ */
+@Entity(tableName = "ai_insights")
+data class AiInsightEntity(
+    @PrimaryKey val id: String,
+    val type: String,
+    val content: String,
+    val reason: String,
+    val confidence: String,
+    val origin: String,
+    val createdAt: Long,
+    val response: String,
+    val feedback: String?,
+    val payload: String?,
+    val templateKey: String?,
+)
+
+@Dao
+interface AiInsightDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun put(e: AiInsightEntity)
+
+    @Query("SELECT * FROM ai_insights WHERE id = :id")
+    suspend fun get(id: String): AiInsightEntity?
+
+    @Query("SELECT * FROM ai_insights WHERE type = :type ORDER BY createdAt DESC LIMIT 1")
+    fun latest(type: String): Flow<AiInsightEntity?>
+
+    @Query("SELECT * FROM ai_insights WHERE type = :type AND response = 'NONE' ORDER BY createdAt DESC")
+    fun pending(type: String): Flow<List<AiInsightEntity>>
+
+    @Query("SELECT MAX(createdAt) FROM ai_insights WHERE type = :type")
+    suspend fun lastAt(type: String): Long?
+
+    @Query("SELECT * FROM ai_insights WHERE type = :type AND createdAt >= :since")
+    suspend fun since(type: String, since: Long): List<AiInsightEntity>
+
+    @Query("SELECT templateKey FROM ai_insights WHERE templateKey IS NOT NULL AND feedback = 'NEGATIVE'")
+    suspend fun dislikedKeys(): List<String>
+
+    @Query("SELECT templateKey FROM ai_insights WHERE templateKey IS NOT NULL ORDER BY createdAt DESC LIMIT :n")
+    suspend fun recentKeys(n: Int): List<String>
+
+    @Query("UPDATE ai_insights SET response = :response WHERE id = :id")
+    suspend fun setResponse(id: String, response: String)
+
+    @Query("UPDATE ai_insights SET feedback = :feedback WHERE id = :id")
+    suspend fun setFeedback(id: String, feedback: String?)
+
+    @Query("DELETE FROM ai_insights")
+    suspend fun clear()
+}
+
+/** v3 → v4: añade ai_insights (coach y sugerencias). */
+val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
+    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `ai_insights` (`id` TEXT NOT NULL, `type` TEXT NOT NULL, `content` TEXT NOT NULL, " +
+                "`reason` TEXT NOT NULL, `confidence` TEXT NOT NULL, `origin` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, " +
+                "`response` TEXT NOT NULL, `feedback` TEXT, `payload` TEXT, `templateKey` TEXT, PRIMARY KEY(`id`))",
+        )
+    }
+}
+
 /** v2 → v3: añade ai_settings sin borrar el historial ni la cola de sincronización. */
 val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
     override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
@@ -200,8 +267,8 @@ val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
 }
 
 @Database(
-    entities = [DayRecord::class, AchievementRecord::class, HourlyUsage::class, SyncOpEntity::class, AiSettingsEntity::class],
-    version = 3,
+    entities = [DayRecord::class, AchievementRecord::class, HourlyUsage::class, SyncOpEntity::class, AiSettingsEntity::class, AiInsightEntity::class],
+    version = 4,
     exportSchema = false,
 )
 abstract class HpDatabase : RoomDatabase() {
@@ -210,4 +277,5 @@ abstract class HpDatabase : RoomDatabase() {
     abstract fun usage(): UsageDao
     abstract fun sync(): SyncDao
     abstract fun aiSettings(): AiSettingsDao
+    abstract fun aiInsights(): AiInsightDao
 }
