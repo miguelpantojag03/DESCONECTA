@@ -144,3 +144,4 @@ UsageStatsManager, el bloqueo por accesibilidad y Device Admin, y el protocolo r
   Layer). La clave vive fuera del repositorio y sus datos en `local.properties` (`release.*`). R8 está desactivado
   hasta añadir las reglas de supabase-kt / Ktor / serialization. Para Google en release hace falta un segundo
   cliente Android en Google Cloud con el SHA-1 de esa clave; la redirección de Supabase es la misma.
+- **pg_cron** confirmado en el proyecto real: la tarea `hp-purge-voice` (03:15 UTC diaria) borra `voice_commands` de más de 30 días.
