@@ -40,8 +40,9 @@ object AppModule {
     @Singleton
     fun database(@ApplicationContext context: Context): HpDatabase =
         Room.databaseBuilder(context, HpDatabase::class.java, "hp.db")
-            // v1 → v2 añade la cola de sincronización y el uso por hora. El historial local
-            // se puede rehacer desde la nube, así que en desarrollo se recrea la base.
+            // v2 → v3 (ajustes de IA) es una migración real: no se pierde nada. Solo v1 → v2,
+            // de antes de la nube, recrea la base.
+            .addMigrations(com.desconecta.hp.mobile.data.db.MIGRATION_2_3)
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 

@@ -134,4 +134,26 @@ class PhoneScreenshots {
             AccountSection(AuthState.SignedIn("u", "ana@correo.com", true), SyncStatus(lastSyncAt = now - 120_000), 0, now, {}, {}, {}, {}, {}, {})
         }
     }
+
+    // --- IA fase 1 -----------------------------------------------------------------------
+    @Composable
+    private fun aiScreen(settings: com.desconecta.hp.shared.ai.model.AiSettings, learning: com.desconecta.hp.mobile.ai.data.LearningState?, signedIn: Boolean) =
+        com.desconecta.hp.mobile.ui.ai.AiSettingsScreen(
+            settings, learning, signedIn, hasPin = true,
+            onToggle = { _, _ -> }, onCloud = {}, onTone = {}, onCoachEvery = {}, onFamilyOn = {},
+            onFamilyOff = { true }, onDeleteAiData = { Result.success(Unit) }, onCreateAccount = {}, onMessage = {},
+        )
+
+    @Config(qualifiers = "w411dp-h2200dp-xxhdpi")
+    @Test fun ia_ajustes_invitado() = shot("26_ia_ajustes_aprendiendo") {
+        aiScreen(com.desconecta.hp.shared.ai.model.AiSettings(), com.desconecta.hp.mobile.ai.data.LearningState(3, 7, false), signedIn = false)
+    }
+    @Config(qualifiers = "w411dp-h2200dp-xxhdpi")
+    @Test fun ia_ajustes_nube() = shot("27_ia_ajustes_nube") {
+        aiScreen(com.desconecta.hp.shared.ai.model.AiSettings().withCloud(true, 1), com.desconecta.hp.mobile.ai.data.LearningState(7, 7, true), signedIn = true)
+    }
+    @Config(qualifiers = "w411dp-h1000dp-xxhdpi")
+    @Test fun ia_ajustes_familiar() = shot("28_ia_ajustes_familiar") {
+        aiScreen(com.desconecta.hp.shared.ai.model.AiSettings().withFamilyMode(true, 1), null, signedIn = true)
+    }
 }

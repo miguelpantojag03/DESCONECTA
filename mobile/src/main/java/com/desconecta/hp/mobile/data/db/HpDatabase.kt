@@ -167,9 +167,41 @@ interface SyncDao {
     suspend fun clear()
 }
 
+/**
+ * Ajustes de IA (una sola fila). Se guardan como JSON de [com.desconecta.hp.shared.ai.model.AiSettings]:
+ * es la caché local de la tabla ai_settings de Supabase.
+ */
+@Entity(tableName = "ai_settings")
+data class AiSettingsEntity(
+    @PrimaryKey val id: Int = 1,
+    val json: String,
+)
+
+@Dao
+interface AiSettingsDao {
+    @Query("SELECT * FROM ai_settings WHERE id = 1")
+    fun observe(): Flow<AiSettingsEntity?>
+
+    @Query("SELECT * FROM ai_settings WHERE id = 1")
+    suspend fun get(): AiSettingsEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun put(entity: AiSettingsEntity)
+
+    @Query("SELECT COUNT(*) FROM day_history WHERE dayKey >= :fromDay")
+    fun daysSince(fromDay: String): Flow<Int>
+}
+
+/** v2 → v3: añade ai_settings sin borrar el historial ni la cola de sincronización. */
+val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
+    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `ai_settings` (`id` INTEGER NOT NULL, `json` TEXT NOT NULL, PRIMARY KEY(`id`))")
+    }
+}
+
 @Database(
-    entities = [DayRecord::class, AchievementRecord::class, HourlyUsage::class, SyncOpEntity::class],
-    version = 2,
+    entities = [DayRecord::class, AchievementRecord::class, HourlyUsage::class, SyncOpEntity::class, AiSettingsEntity::class],
+    version = 3,
     exportSchema = false,
 )
 abstract class HpDatabase : RoomDatabase() {
@@ -177,4 +209,5 @@ abstract class HpDatabase : RoomDatabase() {
     abstract fun achievements(): AchievementDao
     abstract fun usage(): UsageDao
     abstract fun sync(): SyncDao
+    abstract fun aiSettings(): AiSettingsDao
 }

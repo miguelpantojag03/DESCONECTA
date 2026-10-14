@@ -83,12 +83,60 @@ data class AiSettings(
     val cloudAllowed: Boolean = false,
     /** Epoch ms del primer día con datos (para el periodo de aprendizaje de 7 días). */
     val learningStartedAt: Long = 0L,
+    /** Modo familiar (menores): la nube queda desactivada SIEMPRE, la decida quien la decida. */
+    val familyMode: Boolean = false,
+    /** Epoch ms del consentimiento para la IA en la nube (0 = nunca dado). */
+    val cloudConsentAt: Long = 0L,
+    /** Epoch ms del último cambio: resuelve conflictos con el servidor (gana el más reciente). */
+    val updatedAt: Long = 0L,
 ) {
     fun isOn(feature: AiFeature) = feature in enabled
+
+    /** La nube solo puede estar activa con consentimiento y fuera del modo familiar. */
+    val cloudEffective: Boolean get() = cloudAllowed && !familyMode && cloudConsentAt > 0
+
+    fun toggle(feature: AiFeature, on: Boolean, now: Long) =
+        copy(enabled = if (on) enabled + feature else enabled - feature, updatedAt = now)
+
+    /** Activar la nube registra el consentimiento; el modo familiar lo impide. */
+    fun withCloud(allowed: Boolean, now: Long): AiSettings = when {
+        allowed && familyMode -> this
+        allowed -> copy(cloudAllowed = true, cloudConsentAt = now, updatedAt = now)
+        else -> copy(cloudAllowed = false, updatedAt = now)
+    }
+
+    /** El modo familiar apaga la nube en el mismo cambio (nunca queda un estado intermedio). */
+    fun withFamilyMode(on: Boolean, now: Long): AiSettings =
+        copy(familyMode = on, cloudAllowed = if (on) false else cloudAllowed, updatedAt = now)
+
+    fun withCoachEvery(minutes: Int, now: Long) =
+        copy(coachEveryMinutes = minutes.coerceAtLeast(MIN_COACH_MINUTES), updatedAt = now)
 
     companion object {
         const val MIN_COACH_MINUTES = 45
         const val LEARNING_DAYS = 7
+        val COACH_FREQUENCIES = listOf(45, 60, 90, 120)
+
+        /**
+         * Día del periodo de aprendizaje: 1 el primer día, 7 al empezar el séptimo.
+         * [completedDays] = días ya cerrados con datos desde que empezó (o se reinició) el aprendizaje.
+         */
+        fun learningDay(completedDays: Int): Int = (completedDays + 1).coerceIn(1, LEARNING_DAYS)
+
+        fun isLearning(completedDays: Int): Boolean = completedDays < LEARNING_DAYS
+
+        /**
+         * Conflicto con el servidor: gana el cambio más reciente (updated_at). El modo familiar
+         * siempre viene del perfil del servidor y, si está activo, la nube queda apagada.
+         */
+        fun resolve(local: AiSettings, server: AiSettings, serverFamilyMode: Boolean): AiSettings {
+            val winner = if (server.updatedAt > local.updatedAt) server else local
+            return winner.copy(
+                familyMode = serverFamilyMode,
+                cloudAllowed = winner.cloudAllowed && !serverFamilyMode,
+                learningStartedAt = maxOf(local.learningStartedAt, server.learningStartedAt),
+            )
+        }
     }
 }
 

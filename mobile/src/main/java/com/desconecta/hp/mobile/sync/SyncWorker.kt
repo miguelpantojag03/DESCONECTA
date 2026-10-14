@@ -117,6 +117,10 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             is SyncOp.CloseDay -> api.closeDay(op.dayKey)
             is SyncOp.StartWeek -> api.startWeek(op.dayKey)
             is SyncOp.Profile -> api.updateProfile(op.fields)
+            is SyncOp.AiSettingsOp -> {
+                api.updateProfile(kotlinx.serialization.json.buildJsonObject { put("modo_familiar", kotlinx.serialization.json.JsonPrimitive(op.familyMode)) })
+                api.updateAiSettings(op.fields)
+            }
         }
     }
 

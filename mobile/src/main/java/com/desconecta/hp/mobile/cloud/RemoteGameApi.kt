@@ -2,6 +2,9 @@ package com.desconecta.hp.mobile.cloud
 
 import com.desconecta.hp.mobile.data.db.HourlyUsage
 import com.desconecta.hp.mobile.di.SupabaseGateway
+import com.desconecta.hp.shared.ai.model.AiFeature
+import com.desconecta.hp.shared.ai.model.AiSettings
+import com.desconecta.hp.shared.ai.model.CoachTone
 import com.desconecta.hp.shared.model.Monster
 import com.desconecta.hp.shared.model.MonsterArt
 import io.github.jan.supabase.SupabaseClient
@@ -112,6 +115,70 @@ data class ServerSnapshot(
     val inventory: List<RemoteInventory>,
     val achievements: List<RemoteAchievement>,
 )
+
+/** Fila de ai_settings (mismos nombres que las columnas). */
+@Serializable
+data class RemoteAiSettings(
+    @SerialName("oraculo_activo") val oracle: Boolean,
+    @SerialName("deteccion_compulsiva_activa") val compulsive: Boolean,
+    @SerialName("coach_activo") val coach: Boolean,
+    @SerialName("voz_activa") val voice: Boolean,
+    @SerialName("resumenes_activos") val journal: Boolean,
+    @SerialName("jefes_ia_activos") val bosses: Boolean,
+    @SerialName("limites_activos") val limits: Boolean,
+    @SerialName("contexto_activo") val context: Boolean,
+    @SerialName("tono_coach") val tone: String,
+    @SerialName("frecuencia_coach_minutos") val coachEvery: Int,
+    @SerialName("nube_permitida") val cloudAllowed: Boolean,
+    @SerialName("nube_consentida_en") val cloudConsentAt: String? = null,
+    @SerialName("aprendizaje_iniciado_en") val learningStartedAt: String,
+    @SerialName("updated_at") val updatedAt: String,
+) {
+    fun toModel(familyMode: Boolean): AiSettings {
+        val flags = mapOf(
+            AiFeature.ORACLE to oracle, AiFeature.COMPULSIVE to compulsive, AiFeature.COACH to coach,
+            AiFeature.VOICE to voice, AiFeature.JOURNAL to journal, AiFeature.BOSSES to bosses,
+            AiFeature.LIMITS to limits, AiFeature.CONTEXT to context,
+        )
+        return AiSettings(
+            enabled = flags.filterValues { it }.keys,
+            tone = CoachTone.entries.firstOrNull { it.name == toneToEnum(tone) } ?: CoachTone.MOTIVATOR,
+            coachEveryMinutes = coachEvery,
+            cloudAllowed = cloudAllowed,
+            learningStartedAt = epoch(learningStartedAt),
+            familyMode = familyMode,
+            cloudConsentAt = cloudConsentAt?.let(::epoch) ?: 0L,
+            updatedAt = epoch(updatedAt),
+        )
+    }
+
+    private fun toneToEnum(t: String) = when (t) {
+        "divertido" -> "FUNNY"; "sabio" -> "WISE"; "directo" -> "DIRECT"; else -> "MOTIVATOR"
+    }
+
+    private fun epoch(iso: String) = runCatching { java.time.OffsetDateTime.parse(iso).toInstant().toEpochMilli() }.getOrDefault(0L)
+}
+
+/** Columnas editables de ai_settings (las que concede el GRANT por columna). */
+fun AiSettings.toRemoteFields(): JsonObject = buildJsonObject {
+    put("oraculo_activo", isOn(AiFeature.ORACLE))
+    put("deteccion_compulsiva_activa", isOn(AiFeature.COMPULSIVE))
+    put("coach_activo", isOn(AiFeature.COACH))
+    put("voz_activa", isOn(AiFeature.VOICE))
+    put("resumenes_activos", isOn(AiFeature.JOURNAL))
+    put("jefes_ia_activos", isOn(AiFeature.BOSSES))
+    put("limites_activos", isOn(AiFeature.LIMITS))
+    put("contexto_activo", isOn(AiFeature.CONTEXT))
+    put("tono_coach", when (tone) {
+        CoachTone.MOTIVATOR -> "motivador"; CoachTone.FUNNY -> "divertido"; CoachTone.WISE -> "sabio"; CoachTone.DIRECT -> "directo"
+    })
+    put("frecuencia_coach_minutos", coachEveryMinutes.coerceAtLeast(AiSettings.MIN_COACH_MINUTES))
+    // El servidor exige fecha de consentimiento si la nube está permitida.
+    val cloud = cloudEffective
+    put("nube_permitida", cloud)
+    if (cloud) put("nube_consentida_en", java.time.Instant.ofEpochMilli(cloudConsentAt).toString())
+    if (learningStartedAt > 0) put("aprendizaje_iniciado_en", java.time.Instant.ofEpochMilli(learningStartedAt).toString())
+}
 
 /** Resultado de las funciones del servidor que devuelven {"ok", "motivo", …}. */
 data class RpcResult(val ok: Boolean, val reason: String?, val raw: JsonObject)
@@ -307,6 +374,26 @@ class RemoteGameApi @Inject constructor(private val gateway: SupabaseGateway) {
     }
 
     suspend fun exportMyData(): String = client().postgrest.rpc("export_my_data").data
+
+    // --- IA ------------------------------------------------------------------------------
+
+    /** Ajustes de IA y modo familiar (del perfil). null si la fila aún no existe. */
+    suspend fun fetchAiSettings(): Pair<RemoteAiSettings?, Boolean> {
+        val c = client()
+        val settings = c.from("ai_settings").select().decodeSingleOrNull<RemoteAiSettings>()
+        val family = c.from("profiles").select(Columns.list("modo_familiar")) { filter { eq("id", uid()) } }
+            .decodeSingleOrNull<JsonObject>()?.get("modo_familiar")?.jsonPrimitive?.boolean ?: false
+        return settings to family
+    }
+
+    suspend fun updateAiSettings(fields: JsonObject) {
+        client().from("ai_settings").update(fields) { filter { eq("user_id", uid()) } }
+    }
+
+    /** Borra insights y comandos de voz y reinicia el periodo de aprendizaje (RPC). */
+    suspend fun deleteMyAiData() {
+        client().postgrest.rpc("delete_my_ai_data")
+    }
 
     suspend fun deleteMyAccount() {
         client().postgrest.rpc("delete_my_account")

@@ -66,6 +66,7 @@ fun SettingsScreen(
     onOpenPermissions: () -> Unit,
     onReset: () -> Unit,
     cloudSection: @Composable () -> Unit = {},
+    aiSection: @Composable () -> Unit = {},
 ) {
     val c = Hp.colors
     val s = game.settings
@@ -106,6 +107,9 @@ fun SettingsScreen(
 
         SectionLabel("Cuenta y sincronización")
         cloudSection()
+
+        SectionLabel("Inteligencia artificial")
+        aiSection()
 
         SectionLabel("Seguridad")
         HpCard {

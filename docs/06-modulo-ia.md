@@ -184,3 +184,22 @@ Capturas: `docs/screenshots/phone/18_ia_tokens.png` y `docs/screenshots/wear/24�
 | 7 | Funciones de IA por fases: Oráculo → coach → voz → berserker → diario → jefes → límites → contexto (con pantallas, previews de los 9 estados y justificación) | IA 5, 7, 8 |
 | 8 | Edge Functions con prompts de sistema, validación JSON y respaldo | Supabase 6 + IA 6 |
 | 9 | Pruebas: RLS, validador del coach, respaldo de la IA, modo sin conexión | Supabase 7 + IA 9 |
+
+## Paso 7 · Fase 1: ajustes de la IA (hecho)
+
+Pantalla **Compañero IA** (Configuración → Inteligencia artificial → Ajustes de la IA). Capturas `26`–`28`.
+
+| Elemento | Decisión | Justificación |
+|---|---|---|
+| Dónde piensa la IA | "Solo en tu teléfono" marcado por defecto; "También en la nube" abre un consentimiento propio (qué se envía, qué nunca, qué funciones lo usan, revocable). | Local por defecto; People + AI (control y confianza); consentimiento separado del de la cuenta. |
+| Opciones no disponibles | Se muestran deshabilitadas con el motivo ("Necesitas una cuenta", "Desactivada en modo familiar") y, si hay, la acción para habilitarlas. | Nielsen nº 1 y nº 10: no se esconde qué existe ni por qué no se puede usar. |
+| Funciones | 8 interruptores con una línea de qué hace cada una; las que nunca usan la nube llevan "Siempre en tu teléfono". | Privacidad visible; reconocer mejor que recordar (nº 6). |
+| Coach | 4 tonos con frase de ejemplo en la burbuja real; frecuencia 45 min / 1 h / 1 h 30 / 2 h (nunca menos de 45). | Vista previa del resultado (nº 1); la IA no se convierte en otra distracción. |
+| Aprendizaje | "La IA está conociéndote: día N de 7" mientras no haya 7 días con datos. | People + AI: fijar expectativas. |
+| Modo familiar | Apaga la nube en el mismo cambio; quitarlo pide el PIN. El servidor también lo impone (trigger). | Protección de menores; defensa en profundidad. |
+| Borrar mis datos de IA | RPC `delete_my_ai_data` + reinicio del aprendizaje; confirma qué se borra y qué no. | Control del usuario; prevención de errores (nº 5). |
+
+Datos: Room `ai_settings` (migración real 2→3, sin perder historial ni cola) ↔ Supabase `ai_settings`.
+Conflictos: gana el `updated_at` más reciente; el modo familiar siempre viene del perfil del servidor.
+La operación de sincronización aplica primero el modo familiar y luego los ajustes, así el servidor nunca
+recibe "nube permitida" con el modo familiar aún activo. Probado contra el proyecto real.

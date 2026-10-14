@@ -73,6 +73,16 @@ sealed interface SyncOp {
         override val coalesceKey get() = "week:$dayKey"
     }
 
+    /**
+     * Ajustes de IA: solo importa la última versión. Lleva también el modo familiar (columna
+     * del perfil), que se aplica ANTES: así el servidor nunca ve "nube permitida" con el
+     * modo familiar aún activo, aunque los cambios se fusionen en la cola.
+     */
+    @Serializable @SerialName("ai_settings")
+    data class AiSettingsOp(val fields: JsonObject, val familyMode: Boolean) : SyncOp {
+        override val coalesceKey get() = "ai_settings"
+    }
+
     /** Columnas editables del perfil (nombre, avatar, vida máxima…). */
     @Serializable @SerialName("profile")
     data class Profile(val fields: JsonObject) : SyncOp {
@@ -115,6 +125,9 @@ class SyncQueue @Inject constructor(
 
     /** Usos de objeto aún sin subir (para no "devolver" una poción ya gastada al fusionar). */
     suspend fun pendingItemUses(type: String): Int = db.sync().countMatching("UseItem", "\"type\":\"$type\"")
+
+    /** Hay cambios de ajustes de IA sin subir (entonces no se pisan con lo del servidor). */
+    suspend fun hasPendingAiSettings(): Boolean = db.sync().byKey("ai_settings") != null
 
     fun report(transform: (SyncStatus) -> SyncStatus) {
         _status.value = transform(_status.value)

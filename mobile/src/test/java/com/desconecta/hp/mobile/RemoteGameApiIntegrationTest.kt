@@ -2,6 +2,7 @@ package com.desconecta.hp.mobile
 
 import com.desconecta.hp.mobile.cloud.RemoteGameApi
 import com.desconecta.hp.mobile.cloud.SessionUpdate
+import com.desconecta.hp.mobile.cloud.toRemoteFields
 import com.desconecta.hp.mobile.data.db.HourlyUsage
 import com.desconecta.hp.mobile.di.SupabaseGateway
 import com.desconecta.hp.shared.model.Monster
@@ -97,6 +98,21 @@ class RemoteGameApiIntegrationTest {
             // Cerrar dos veces no duplica la XP.
             assertFalse(api.closeDay(day)!!.xpEarned == 140)
             assertEquals(70, api.fetchSnapshot().profile!!.xp)
+
+            // Ajustes de IA: fila creada al registrarse, nube con consentimiento, modo familiar la apaga.
+            val (row0, family0) = api.fetchAiSettings()
+            assertTrue("ai_settings existe tras el registro", row0 != null)
+            assertFalse(row0!!.cloudAllowed || family0)
+            val cloudOn = row0.toModel(false).toggle(com.desconecta.hp.shared.ai.model.AiFeature.COACH, false, 1)
+                .withCloud(true, System.currentTimeMillis())
+            api.updateAiSettings(cloudOn.toRemoteFields())
+            val (row1, _) = api.fetchAiSettings()
+            assertTrue("nube activada", row1!!.cloudAllowed && !row1.coach)
+            api.updateProfile(buildJsonObject { put("modo_familiar", JsonPrimitive(true)) })
+            assertFalse("el modo familiar apaga la nube en el servidor", api.fetchAiSettings().first!!.cloudAllowed)
+            val reject = runCatching { api.updateAiSettings(cloudOn.toRemoteFields()) }
+            assertTrue("con modo familiar el servidor rechaza activar la nube", reject.isFailure || !api.fetchAiSettings().first!!.cloudAllowed)
+            api.deleteMyAiData()
 
             api.startWeek(LocalDate.now().toString())
             api.registerDevice("telefono", "Prueba JVM")

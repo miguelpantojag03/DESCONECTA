@@ -34,6 +34,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.desconecta.hp.mobile.cloud.AuthState
 import com.desconecta.hp.mobile.system.HpPermission
 import com.desconecta.hp.mobile.ui.account.AccountNotice
+import com.desconecta.hp.mobile.ui.ai.AiSettingsScreen
+import com.desconecta.hp.mobile.ui.ai.AiSettingsSummary
+import com.desconecta.hp.mobile.ui.ai.AiSettingsViewModel
 import com.desconecta.hp.mobile.ui.account.AccountViewModel
 import com.desconecta.hp.mobile.ui.account.AuthMode
 import com.desconecta.hp.mobile.ui.account.AuthScreen
@@ -82,6 +85,7 @@ private object Routes {
     const val ACCOUNT_AUTH = "account/auth/{mode}"
     const val ACCOUNT_NEW_PASSWORD = "account/new-password"
     const val ACCOUNT_DELETE = "account/delete"
+    const val AI_SETTINGS = "ai/settings"
     fun auth(mode: AuthMode) = "account/auth/${mode.name}"
 }
 
@@ -190,6 +194,7 @@ fun PhoneApp(viewModel: MainViewModel) {
                     Routes.ACCOUNT_CONSENT, Routes.ACCOUNT_AUTH -> HpTopBar("Tu cuenta", onBack = { nav.popBackStack() })
                     Routes.ACCOUNT_DELETE -> HpTopBar("Borrar cuenta", onBack = { nav.popBackStack() })
                     Routes.ACCOUNT_NEW_PASSWORD -> HpTopBar("Contraseña nueva")
+                    Routes.AI_SETTINGS -> HpTopBar("Compañero IA", onBack = { nav.popBackStack() })
                     else -> Unit
                 }
             },
@@ -242,7 +247,9 @@ fun PhoneApp(viewModel: MainViewModel) {
                             missingPermissions = listOf(HpPermission.USAGE, HpPermission.ACCESSIBILITY, HpPermission.OVERLAY).count { permissions[it] != true },
                             now = now,
                             onOpenPermissions = { nav.navigate(Routes.PERMISSIONS) },
-                            onOpenBestiary = { nav.navigate(Routes.BESTIARY) { launchSingleTop = true } },
+                            onOpenBestiary = {
+                                nav.navigate(Routes.BESTIARY) { popUpTo(Routes.HOME) { saveState = true }; launchSingleTop = true; restoreState = true }
+                            },
                             onOpenAvatar = { nav.navigate(Routes.AVATAR) },
                             onOpenSettings = { nav.navigate(Routes.SETTINGS) },
                             onStudyMode = viewModel::setStudyMode,
@@ -337,10 +344,39 @@ fun PhoneApp(viewModel: MainViewModel) {
                                     onDeleteAccount = { nav.navigate(Routes.ACCOUNT_DELETE) },
                                 )
                             },
+                            aiSection = {
+                                val aiVm: AiSettingsViewModel = hiltViewModel()
+                                val ai by aiVm.settings.collectAsStateWithLifecycle()
+                                AiSettingsSummary(ai, onOpen = { nav.navigate(Routes.AI_SETTINGS) })
+                            },
                         )
                     }
                 }
                 composable(Routes.PERMISSIONS) { PermissionsOnlyScreen(permissions, grant) }
+
+                // --- IA (paso 7) -------------------------------------------------------
+                composable(Routes.AI_SETTINGS) {
+                    val vm: AiSettingsViewModel = hiltViewModel()
+                    val ai by vm.settings.collectAsStateWithLifecycle()
+                    val learning by vm.learning.collectAsStateWithLifecycle()
+                    val signedIn by vm.signedIn.collectAsStateWithLifecycle()
+                    val hasPin by vm.hasPin.collectAsStateWithLifecycle()
+                    AiSettingsScreen(
+                        settings = ai,
+                        learning = learning,
+                        signedIn = signedIn,
+                        hasPin = hasPin,
+                        onToggle = { f, on -> vm.toggle(f, on) },
+                        onCloud = { vm.setCloud(it) },
+                        onTone = { vm.setTone(it) },
+                        onCoachEvery = { vm.setCoachEvery(it) },
+                        onFamilyOn = { vm.enableFamilyMode() },
+                        onFamilyOff = { vm.disableFamilyMode(it) },
+                        onDeleteAiData = { vm.deleteAiData() },
+                        onCreateAccount = { nav.navigate(Routes.ACCOUNT_CONSENT) },
+                        onMessage = toast,
+                    )
+                }
 
                 // --- Cuenta (paso 6) ---------------------------------------------------
                 composable(Routes.ACCOUNT_CONSENT) {
@@ -422,10 +458,17 @@ private fun TabBar(nav: NavHostController, tabs: List<Tab>, route: String?) {
             NavigationBarItem(
                 selected = selected,
                 onClick = {
-                    nav.navigate(tab.route) {
-                        popUpTo(Routes.HOME) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
+                    if (tab.route == Routes.HOME) {
+                        // Inicio es la raíz: se vuelve a ella sin "restaurar" nada. Restaurar su
+                        // estado guardado devolvía la pila que tenía encima (p. ej. el Bestiario
+                        // abierto desde el enlace del panel) y el botón Inicio no llevaba a Inicio.
+                        nav.popBackStack(Routes.HOME, inclusive = false)
+                    } else {
+                        nav.navigate(tab.route) {
+                            popUpTo(Routes.HOME) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
                 },
                 icon = {

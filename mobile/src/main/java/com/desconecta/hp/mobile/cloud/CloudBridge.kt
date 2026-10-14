@@ -41,6 +41,7 @@ class CloudBridge @Inject constructor(
     private val queue: SyncQueue,
     private val repository: dagger.Lazy<GameRepository>,
     private val store: GameStore,
+    private val aiSettings: dagger.Lazy<com.desconecta.hp.mobile.ai.data.AiSettingsRepository>,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val pullMutex = Mutex()
@@ -88,11 +89,13 @@ class CloudBridge @Inject constructor(
             queue.clear()
             val snapshot = runCatching { api.fetchSnapshot() }.getOrNull()
             repo.adoptAccount(snapshot)
+            runCatching { aiSettings.get().mergeServer(adopt = true) }
             store.setBoundUserId(userId)
             // Sin descarga no sabemos si la cuenta es nueva: no se pisa su perfil.
             repo.enqueueFullState(includeProfile = snapshot != null && repo.isFreshProfile(snapshot))
         } else {
             repo.enqueueFullState()
+            runCatching { aiSettings.get().mergeServer() }
         }
         queue.schedulePeriodic()
         queue.scheduleNow()
@@ -131,6 +134,7 @@ class CloudBridge @Inject constructor(
             pendingPotions = queue.pendingItemUses("pocion"),
             pendingShields = queue.pendingItemUses("escudo"),
         )
+        runCatching { aiSettings.get().mergeServer() }
     }
 
     /** Sube el día ya (sin esperar a la cola): lo necesita Revivir para validar el Game Over. */
