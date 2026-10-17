@@ -251,6 +251,7 @@ fun PhoneApp(viewModel: MainViewModel) {
                                 )
                             },
                             missingPermissions = listOf(HpPermission.USAGE, HpPermission.ACCESSIBILITY, HpPermission.OVERLAY).count { permissions[it] != true },
+                            missing = HpPermission.entries.filter { permissions[it] != true }.toSet(),
                             now = now,
                             onOpenPermissions = { nav.navigate(Routes.PERMISSIONS) },
                             onOpenBestiary = {

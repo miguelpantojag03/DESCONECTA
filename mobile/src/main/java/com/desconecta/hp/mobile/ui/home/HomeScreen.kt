@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.desconecta.hp.mobile.system.HpPermission
 import com.desconecta.hp.mobile.ui.ai.BerserkerCard
 import com.desconecta.hp.mobile.ui.ai.CoachCard
 import com.desconecta.hp.mobile.ui.ai.OracleLine
@@ -83,6 +84,8 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onStudyMode: (Int) -> Unit,
     syncIndicator: @Composable () -> Unit = {},
+    /** Permisos que faltan (para decir qué deja de funcionar). */
+    missing: Set<HpPermission> = emptySet(),
     /** Última frase del coach de hoy (null = coach apagado o nada que decir). */
     coach: AiInsight? = null,
     /** Sugerencias de límite pendientes de respuesta. */
@@ -125,15 +128,39 @@ fun HomeScreen(
         }
 
         // --- Sin permisos ----------------------------------------------------------------
+        // Dice QUÉ falta y QUÉ deja de funcionar (no es lo mismo no contar que no bloquear).
+        val noUsage = HpPermission.USAGE in missing
+        val noBlock = HpPermission.ACCESSIBILITY in missing || HpPermission.OVERLAY in missing
         if (missingPermissions > 0) {
             item {
                 HpCard(container = c.hurtContainer, border = c.hpHurt) {
                     InfoRow(
                         PixelIcons.Lock, c.hpHurt,
-                        title = "HP no puede ver a los monstruos",
-                        subtitle = "Faltan $missingPermissions permiso${if (missingPermissions > 1) "s" else ""}: el daño no se está contando.",
+                        title = when {
+                            noUsage -> "HP no está contando tu tiempo"
+                            noBlock -> "HP cuenta, pero no puede bloquear"
+                            else -> "Faltan permisos"
+                        },
+                        subtitle = when {
+                            noUsage && noBlock -> "Falta el acceso al uso (para contar) y la accesibilidad (para bloquear)."
+                            noUsage -> "Falta el permiso de acceso al uso: sin él no veo qué app usas."
+                            noBlock -> "Falta ${if (HpPermission.ACCESSIBILITY in missing) "la accesibilidad" else "mostrar sobre otras apps"}: los monstruos derrotados no se detendrán."
+                            else -> "Faltan $missingPermissions permiso${if (missingPermissions > 1) "s" else ""}."
+                        },
                     )
-                    PrimaryButton("Revisar permisos", onClick = onOpenPermissions, container = c.hpHurt)
+                    PrimaryButton("Arreglarlo", onClick = onOpenPermissions, container = c.hpHurt)
+                }
+            }
+        } else if (HpPermission.BATTERY in missing) {
+            // Recomendado, no crítico: aviso suave (sin rojo) para no alarmar.
+            item {
+                HpCard(border = c.outlineStrong) {
+                    InfoRow(
+                        PixelIcons.Lock, c.textSecondary,
+                        title = "Evita que el teléfono apague HP",
+                        subtitle = "Para ahorrar batería, tu teléfono puede cerrar HP y dejaría de contar. Permite que funcione en segundo plano.",
+                    )
+                    SecondaryButton("Permitir", onClick = onOpenPermissions)
                 }
             }
         }

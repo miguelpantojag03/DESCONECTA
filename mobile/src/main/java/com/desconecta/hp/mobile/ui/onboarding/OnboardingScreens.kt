@@ -229,6 +229,11 @@ private fun copyFor(p: HpPermission) = when (p) {
         "Para que la pantalla de \"Monstruo derrotado\" aparezca encima de la app bloqueada.",
         required = true,
     )
+    HpPermission.BATTERY -> PermissionCopy(
+        "Funcionar siempre en segundo plano",
+        "Algunos teléfonos (sobre todo Samsung) apagan las apps en segundo plano para ahorrar batería. Si me apagan, dejo de contar tu tiempo sin avisarte. Gasto muy poca batería.",
+        required = false,
+    )
     HpPermission.NOTIFICATIONS -> PermissionCopy(
         "Notificaciones",
         "Para mostrar tu vida en la barra de notificaciones mientras te protejo.",
@@ -239,6 +244,43 @@ private fun copyFor(p: HpPermission) = when (p) {
         "Solo para apagar la pantalla cuando llegas a Game Over. Nada más.",
         required = false,
     )
+}
+
+/**
+ * Android 13+ bloquea la Accesibilidad de las apps instaladas fuera de la tienda ("Ajuste
+ * restringido"). El paso para desbloquearlo está escondido en la ficha de la app: se explica
+ * aquí con pasos numerados y un botón que lleva directo a esa ficha (ayuda contextual,
+ * Nielsen nº 10). Encontrado al probar en un Samsung A55.
+ */
+@Composable
+private fun RestrictedSettingHelp() {
+    if (android.os.Build.VERSION.SDK_INT < 33) return
+    val c = Hp.colors
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Column(
+        Modifier.fillMaxWidth().background(c.hurtContainer, Hp.shapes.card).padding(HpSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(HpSpacing.xs),
+    ) {
+        Text("¿Sale \"Ajuste restringido\" y no te deja activarlo?", style = Hp.type.bodyStrong, color = c.textPrimary)
+        Text(
+            "1. Toca \"Abrir ficha de HP\".\n" +
+            "2. Toca el menú ⋮ de arriba a la derecha.\n" +
+            "3. Elige \"Permitir ajustes restringidos\".\n" +
+            "4. Vuelve aquí y toca \"Conceder\" otra vez.",
+            style = Hp.type.body, color = c.textSecondary,
+        )
+        SecondaryButton(
+            "Abrir ficha de HP",
+            onClick = {
+                runCatching {
+                    context.startActivity(
+                        android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                            .setData(android.net.Uri.parse("package:" + context.packageName)),
+                    )
+                }
+            },
+        )
+    }
 }
 
 /** Paso 4: permisos uno por uno (el siguiente pendiente se destaca). */
@@ -277,6 +319,7 @@ private fun PermissionsPage(permissions: Map<HpPermission, Boolean>, onGrant: (H
             if (!granted && focused) {
                 Text(copy.why, style = Hp.type.body, color = c.textSecondary)
                 PrimaryButton("Conceder", onClick = { onGrant(p) })
+                if (p == HpPermission.ACCESSIBILITY) RestrictedSettingHelp()
             }
         }
     }

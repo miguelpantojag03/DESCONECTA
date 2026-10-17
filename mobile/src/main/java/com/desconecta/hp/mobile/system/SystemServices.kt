@@ -55,7 +55,8 @@ class DeviceLocker @Inject constructor(@param:ApplicationContext private val con
 // Permisos
 // =====================================================================================
 
-enum class HpPermission { USAGE, ACCESSIBILITY, OVERLAY, NOTIFICATIONS, DEVICE_ADMIN }
+/** BATTERY: excluir a HP de la optimización de batería (Samsung y otros cierran el monitoreo). */
+enum class HpPermission { USAGE, ACCESSIBILITY, OVERLAY, BATTERY, NOTIFICATIONS, DEVICE_ADMIN }
 
 @Singleton
 class PermissionChecker @Inject constructor(
@@ -69,6 +70,8 @@ class PermissionChecker @Inject constructor(
         HpPermission.NOTIFICATIONS -> Build.VERSION.SDK_INT < 33 ||
             ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         HpPermission.DEVICE_ADMIN -> locker.isAdminActive()
+        HpPermission.BATTERY -> context.getSystemService(android.os.PowerManager::class.java)
+            ?.isIgnoringBatteryOptimizations(context.packageName) ?: true
     }
 
     fun missingRequired(): List<HpPermission> =
@@ -97,6 +100,8 @@ class PermissionChecker @Inject constructor(
         HpPermission.ACCESSIBILITY -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         HpPermission.OVERLAY -> Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:${context.packageName}"))
         HpPermission.NOTIFICATIONS -> Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        // Diálogo del sistema "¿Permitir que HP se ejecute siempre en segundo plano?".
+        HpPermission.BATTERY -> Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:${context.packageName}"))
         HpPermission.DEVICE_ADMIN -> Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
             .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, locker.admin)
             .putExtra(

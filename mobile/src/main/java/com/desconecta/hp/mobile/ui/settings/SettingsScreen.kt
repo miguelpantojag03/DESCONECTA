@@ -193,6 +193,7 @@ fun permissionName(p: HpPermission) = when (p) {
     HpPermission.ACCESSIBILITY -> "Servicio de accesibilidad"
     HpPermission.OVERLAY -> "Mostrar sobre otras apps"
     HpPermission.NOTIFICATIONS -> "Notificaciones"
+    HpPermission.BATTERY -> "Segundo plano sin restricciones"
     HpPermission.DEVICE_ADMIN -> "Bloqueo de pantalla"
 }
 

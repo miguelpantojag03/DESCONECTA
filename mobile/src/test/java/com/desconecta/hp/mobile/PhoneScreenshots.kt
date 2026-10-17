@@ -79,7 +79,7 @@ class PhoneScreenshots {
         HomeScreen(game, SampleData.history, true, 0, now, {}, {}, {}, {}, {})
     }
     @Test fun panel_sin_permisos() = shot("06_panel_sin_permisos") {
-        HomeScreen(game, SampleData.history, false, 2, now, {}, {}, {}, {}, {})
+        HomeScreen(game, SampleData.history, false, 1, now, {}, {}, {}, {}, {}, missing = setOf(HpPermission.ACCESSIBILITY, HpPermission.BATTERY))
     }
     @Test fun bloqueo() = shot("07_bloqueo_app") {
         MonsterDefeatedScreen(game.monsters[2], "5 h 20 min", PotionButtonState.READY, {}, {})
@@ -227,5 +227,13 @@ class PhoneScreenshots {
                 payload = com.desconecta.hp.shared.datalayer.WireCodec.json.encodeToString(com.desconecta.hp.shared.ai.model.BattleJournal.serializer(), j),
             ),
         )
+    }
+
+    // --- Permisos guiados (encontrado al probar en un Samsung A55) ------------------------
+    @Config(qualifiers = "w411dp-h1300dp-xxhdpi")
+    @Test fun permisos_accesibilidad() = shot("33_permisos_accesibilidad") {
+        com.desconecta.hp.mobile.ui.onboarding.PermissionsOnlyScreen(
+            mapOf(HpPermission.USAGE to true, HpPermission.ACCESSIBILITY to false, HpPermission.OVERLAY to false, HpPermission.BATTERY to false),
+        ) {}
     }
 }
